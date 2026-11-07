@@ -15,9 +15,8 @@ services:
     environment:
       TZ: America/Sao_Paulo
     volumes:
-      - type: bind
-        source: /DATA/AppData/tempo-de-tela/data
-        target: /appdata
+      # Sintaxe curta: o Docker cria a pasta como root, dono que o container (sem DAC_OVERRIDE) precisa.
+      - /DATA/AppData/tempo-de-tela/data:/appdata
     x-casaos:
       volumes:
         - container: /appdata

@@ -11,8 +11,13 @@ troca de senha, instruções do roteador e pareamento do app Android por QR code
 aparelho, revogável). A API `/api/v1` exige o token do pareamento. Dockerfile (distroless,
 amd64+arm64), `casaos/docker-compose.yml` (rede do host, só `NET_RAW` e `NET_BIND_SERVICE`)
 e workflow do GHCR prontos.
-Faltam na fase 1 o deploy no zima (parar o `pihole`), a validação dos coletores com as
-permissões do container e a descoberta por SSDP/NetBIOS.
+**Deploy feito em 07/11/2026:** o `pihole` foi parado (restart policy `no`, pra não voltar no
+boot e brigar pela porta 53) e o app foi instalado pelo `casaos-cli`. Responde DNS na LAN e na
+Tailscale, bloqueia DoH (`dns.google` → NXDOMAIN), usa ~11 MB de RAM e está healthy. No primeiro
+minuto, o ARP achou 14 aparelhos pelo MAC, o mDNS deu nome a 4 e 11 clientes já usavam o DNS.
+Os sockets de ARP e DHCP abriram com as permissões do container (`NET_RAW`).
+Falta na fase 1: a descoberta por SSDP/NetBIOS. Voltar ao Pi-hole: `docker stop tempo-de-tela`,
+`docker update --restart unless-stopped pihole`, `docker start pihole`.
 Alternativa pronta considerada: AdGuard Home (clientes nomeados, serviços bloqueados por aparelho,
 agenda, controle parental e busca segura).
 
