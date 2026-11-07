@@ -77,6 +77,27 @@ também vale.
   aparelhos da pessoa não são gravadas.
 - `GET /healthz`: sem autenticação, para o healthcheck.
 
+## App Android
+
+Em `android/` (Kotlin, Jetpack Compose, Material3). Pareia lendo o QR code do painel (ou com
+endereço + token digitados) e guarda o token criptografado no aparelho. Tenta os endereços
+do servidor em ordem (LAN em casa, Tailscale fora) e lembra o último que respondeu.
+
+- **Aparelhos:** sem dono em destaque, agrupados por pessoa, online agora, quem não usa o DNS
+  da casa; renomear, tipo, dono e ocultar.
+- **Pessoas:** cadastro (criança, adulto, casa), emoji, pausar o registro, vincular aparelhos.
+- **Servidor:** endereço em uso, contadores do DNS, estado dos coletores, desparear.
+
+```bash
+cd android
+./dev.sh run     # build + instala + abre no aparelho/emulador conectado
+./dev.sh test    # testes unitários
+```
+
+O GitHub Actions builda o APK debug a cada mudança em `android/` e, em tag `v*`, anexa o APK
+release assinado na Release (precisa dos secrets `RELEASE_KEYSTORE_BASE64`,
+`RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` e `RELEASE_KEY_PASSWORD`).
+
 ## Testes
 
 ```bash

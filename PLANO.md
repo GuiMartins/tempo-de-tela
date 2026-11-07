@@ -16,7 +16,13 @@ boot e brigar pela porta 53) e o app foi instalado pelo `casaos-cli`. Responde D
 Tailscale, bloqueia DoH (`dns.google` → NXDOMAIN), usa ~11 MB de RAM e está healthy. No primeiro
 minuto, o ARP achou 14 aparelhos pelo MAC, o mDNS deu nome a 4 e 11 clientes já usavam o DNS.
 Os sockets de ARP e DHCP abriram com as permissões do container (`NET_RAW`).
-Falta na fase 1: a descoberta por SSDP/NetBIOS. Voltar ao Pi-hole: `docker stop tempo-de-tela`,
+Falta na fase 1: a descoberta por SSDP/NetBIOS.
+
+**Fase 3 (Android base) em andamento:** API de pessoas, vínculos com histórico e edição de
+aparelhos no backend (deploy feito). App em `android/` com pareamento por QR ou manual,
+failover LAN → Tailscale, abas Aparelhos, Pessoas e Servidor; testado no emulador contra uma
+cópia do banco do zima. Falta parear um celular de verdade e assinar o APK de release
+(secrets do repositório). Voltar ao Pi-hole: `docker stop tempo-de-tela`,
 `docker update --restart unless-stopped pihole`, `docker start pihole`.
 Alternativa pronta considerada: AdGuard Home (clientes nomeados, serviços bloqueados por aparelho,
 agenda, controle parental e busca segura).

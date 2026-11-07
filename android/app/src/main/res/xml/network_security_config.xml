@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HTTP sem TLS de propósito: o servidor roda na rede de casa (e na Tailscale, que já é
+  criptografada) por IP, sem domínio pra limitar a regra.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

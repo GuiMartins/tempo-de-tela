@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Só a janela até o Compose assumir; as cores vêm do tema Material3 do app. -->
+    <style name="Theme.TempoDeTela" parent="android:Theme.Material.NoActionBar" />
+</resources>
