@@ -28,8 +28,8 @@ var templateFS embed.FS
 
 var pages = template.Must(template.New("").Funcs(template.FuncMap{
 	"formatTime": formatTime,
-	"autoName":   autoName,
-	"details":    details,
+	"icon":       icon,
+	"num":        num,
 }).ParseFS(templateFS, "templates/*.html"))
 
 const sessionCookie = "tdt_session"
@@ -44,6 +44,8 @@ type Deps struct {
 	LAN      func() collectors.Status
 	// HTTPPort entra nos endereços do QR de pareamento quando o Host da requisição não traz porta.
 	HTTPPort string
+	// Started é a hora em que o serviço subiu (mostrada como "no ar há…").
+	Started time.Time
 }
 
 type handler struct{ Deps }
@@ -60,7 +62,11 @@ func Handler(d Deps) http.Handler {
 	mux.HandleFunc("GET /login", h.loginPage)
 	mux.HandleFunc("POST /login", h.login)
 
-	mux.HandleFunc("GET /{$}", h.panel(h.index))
+	mux.HandleFunc("GET /{$}", h.panel(h.overview))
+	mux.HandleFunc("GET /devices", h.panel(h.devicesPage))
+	mux.HandleFunc("GET /settings", h.panel(h.settingsPage))
+	mux.HandleFunc("GET /pairing", h.panel(h.pairingPage))
+	mux.HandleFunc("GET /security", h.panel(h.securityPage))
 	mux.HandleFunc("POST /logout", h.panel(h.logout))
 	mux.HandleFunc("POST /settings", h.panel(h.saveSettings))
 	mux.HandleFunc("POST /password", h.panel(h.changePassword))
@@ -215,21 +221,6 @@ func (h *handler) logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-type indexPage struct {
-	Version       string
-	OK, Err       string
-	DNS           string
-	Stats         dnsStats
-	DroppedLogs   uint64
-	LAN           collectors.Status
-	Devices       []store.DeviceCoverage
-	Hidden        []store.DeviceCoverage
-	Settings      settings.Settings
-	UpstreamsText string
-	Tokens        []store.Token
-	ServerIP      string
-}
-
 type dnsStats struct {
 	Addr      string `json:"addr"`
 	Queries   uint64 `json:"queries"`
@@ -245,38 +236,6 @@ func (h *handler) dnsStats() dnsStats {
 		Addr: h.DNS.LocalAddr().String(), Queries: s.Queries.Load(), CacheHits: s.CacheHits.Load(),
 		Blocked: s.Blocked.Load(), Failures: s.Failures.Load(), LastError: s.LastError(),
 	}
-}
-
-func (h *handler) index(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	devices, err := h.Store.DeviceCoverage(ctx, store.VisibleDevices)
-	if err != nil {
-		http.Error(w, "Inventário indisponível", http.StatusServiceUnavailable)
-		return
-	}
-	hidden, err := h.Store.DeviceCoverage(ctx, store.HiddenDevices)
-	if err != nil {
-		http.Error(w, "Inventário indisponível", http.StatusServiceUnavailable)
-		return
-	}
-	tokens, err := h.Store.Tokens(ctx)
-	if err != nil {
-		http.Error(w, "Banco de dados indisponível", http.StatusServiceUnavailable)
-		return
-	}
-	cfg := h.Settings.Get()
-	stats := h.dnsStats()
-	serverIP := "o IP deste servidor"
-	if ip := outboundIP(); ip.IsValid() {
-		serverIP = ip.String()
-	}
-	q := r.URL.Query()
-	render(w, http.StatusOK, "index.html", indexPage{
-		Version: h.Version, OK: q.Get("ok"), Err: q.Get("err"),
-		DNS: stats.Addr, Stats: stats, DroppedLogs: h.Dropped(), LAN: h.LAN(),
-		Devices: devices, Hidden: hidden, Settings: cfg, UpstreamsText: strings.Join(cfg.Upstreams, "\n"),
-		Tokens: tokens, ServerIP: serverIP,
-	})
 }
 
 func (h *handler) saveSettings(w http.ResponseWriter, r *http.Request) {
@@ -295,7 +254,7 @@ func (h *handler) saveSettings(w http.ResponseWriter, r *http.Request) {
 	for _, f := range ints {
 		n, err := strconv.Atoi(strings.TrimSpace(r.PostFormValue(f.field)))
 		if err != nil {
-			back(w, r, "config", "", "Valor inválido em "+f.label+".")
+			back(w, r, "settings", "", "Valor inválido em "+f.label+".")
 			return
 		}
 		*f.dst = n
@@ -303,32 +262,32 @@ func (h *handler) saveSettings(w http.ResponseWriter, r *http.Request) {
 	s.BlockBypass = r.PostFormValue("block_bypass") != ""
 	s.Interface = r.PostFormValue("interface")
 	if err := h.Settings.Save(r.Context(), s); err != nil {
-		back(w, r, "config", "", capitalize(err.Error())+".")
+		back(w, r, "settings", "", capitalize(err.Error())+".")
 		return
 	}
-	back(w, r, "config", "Configurações salvas.", "")
+	back(w, r, "settings", "Configurações salvas.", "")
 }
 
 func (h *handler) changePassword(w http.ResponseWriter, r *http.Request) {
 	next := r.PostFormValue("new")
 	if next != r.PostFormValue("confirm") {
-		back(w, r, "senha", "", "As senhas novas não conferem.")
+		back(w, r, "security", "", "As senhas novas não conferem.")
 		return
 	}
 	token, err := h.Auth.ChangePassword(r.Context(), r.PostFormValue("current"), next)
 	switch {
 	case errors.Is(err, auth.ErrBadPassword):
-		back(w, r, "senha", "", "Senha atual incorreta.")
+		back(w, r, "security", "", "Senha atual incorreta.")
 		return
 	case errors.Is(err, auth.ErrWeakPassword):
-		back(w, r, "senha", "", capitalize(err.Error())+".")
+		back(w, r, "security", "", capitalize(err.Error())+".")
 		return
 	case err != nil:
 		http.Error(w, "Banco de dados indisponível", http.StatusServiceUnavailable)
 		return
 	}
 	setSession(w, token)
-	back(w, r, "senha", "Senha trocada. As outras sessões do painel foram encerradas.", "")
+	back(w, r, "security", "Senha trocada. As outras sessões do painel foram encerradas.", "")
 }
 
 func (h *handler) updateDevice(w http.ResponseWriter, r *http.Request) {
@@ -348,20 +307,20 @@ func (h *handler) updateDevice(w http.ResponseWriter, r *http.Request) {
 	default:
 		name := strings.TrimSpace(r.PostFormValue("name"))
 		if utf8.RuneCountInString(name) > maxNameLen {
-			back(w, r, "aparelhos", "", "Nome muito longo (máximo 64 caracteres).")
+			back(w, r, "devices", "", "Nome muito longo (máximo 64 caracteres).")
 			return
 		}
 		err, msg = h.Store.UpdateDevice(ctx, id, store.DeviceUpdate{Name: &name}), "Nome salvo."
 	}
 	if errors.Is(err, store.ErrNotFound) {
-		back(w, r, "aparelhos", "", "Aparelho não encontrado.")
+		back(w, r, "devices", "", "Aparelho não encontrado.")
 		return
 	}
 	if err != nil {
 		http.Error(w, "Banco de dados indisponível", http.StatusServiceUnavailable)
 		return
 	}
-	back(w, r, "aparelhos", msg, "")
+	back(w, r, "devices", msg, "")
 }
 
 type pairPayload struct {
@@ -381,7 +340,7 @@ func (h *handler) pair(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	token, err := h.Auth.NewAPIToken(r.Context(), name)
 	if err != nil {
-		back(w, r, "pareamento", "", capitalize(err.Error())+".")
+		back(w, r, "pairing", "", capitalize(err.Error())+".")
 		return
 	}
 	if name == "" {
@@ -405,14 +364,14 @@ func (h *handler) deleteToken(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.Store.DeleteToken(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		back(w, r, "pareamento", "", "Pareamento não encontrado.")
+		back(w, r, "pairing", "", "Pareamento não encontrado.")
 		return
 	}
 	if err != nil {
 		http.Error(w, "Banco de dados indisponível", http.StatusServiceUnavailable)
 		return
 	}
-	back(w, r, "pareamento", "Pareamento revogado.", "")
+	back(w, r, "pairing", "Pareamento revogado.", "")
 }
 
 func (h *handler) status(w http.ResponseWriter, r *http.Request) {
@@ -437,8 +396,8 @@ func render(w http.ResponseWriter, status int, name string, data any) {
 	}
 }
 
-// back volta para o painel com uma mensagem, na seção do formulário enviado.
-func back(w http.ResponseWriter, r *http.Request, section, ok, errMsg string) {
+// back volta para a página do formulário enviado, com uma mensagem.
+func back(w http.ResponseWriter, r *http.Request, page, ok, errMsg string) {
 	q := url.Values{}
 	if ok != "" {
 		q.Set("ok", ok)
@@ -446,7 +405,7 @@ func back(w http.ResponseWriter, r *http.Request, section, ok, errMsg string) {
 	if errMsg != "" {
 		q.Set("err", errMsg)
 	}
-	http.Redirect(w, r, "/?"+q.Encode()+"#"+section, http.StatusSeeOther)
+	http.Redirect(w, r, "/"+page+"?"+q.Encode(), http.StatusSeeOther)
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
@@ -494,17 +453,6 @@ func autoName(d store.DeviceCoverage) string {
 		}
 	}
 	return "—"
-}
-
-func details(d store.DeviceCoverage) string {
-	label := autoName(d)
-	var parts []string
-	for _, s := range []string{d.OSGuess, d.KindGuess, d.Vendor} {
-		if s != "" && s != label && !contains(parts, s) {
-			parts = append(parts, s)
-		}
-	}
-	return strings.Join(parts, " · ")
 }
 
 func contains(list []string, s string) bool {

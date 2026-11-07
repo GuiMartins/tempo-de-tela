@@ -1,0 +1,36 @@
+{{template "top" .}}
+<header class="page-head">
+  <div>
+    <h1>Segurança</h1>
+    <p class="sub">Quem tem a senha do painel vê o histórico da casa e pareia apps.</p>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="card">
+    <div class="card-head"><h2>{{icon "key"}} Trocar a senha</h2></div>
+    <form class="stack" method="post" action="/password">
+      <label class="field"><span>Senha atual</span><input type="password" name="current" autocomplete="current-password" required></label>
+      <label class="field"><span>Nova senha</span><input type="password" name="new" minlength="8" autocomplete="new-password" required><span class="hint">Pelo menos 8 caracteres.</span></label>
+      <label class="field"><span>Repita a nova senha</span><input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+      <div><button class="btn">Trocar senha</button></div>
+      <p class="hint">Trocar a senha encerra as sessões do painel em outros navegadores. Os apps pareados continuam funcionando.</p>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "terminal"}} Esqueceu a senha?</h2></div>
+    <p class="muted">No servidor, rode o comando abaixo. No próximo acesso, o painel pede uma senha nova.</p>
+    <div class="cmd" style="margin-top:1rem">
+      <code id="reset">docker exec tempo-de-tela /tempo-de-tela -reset-password</code>
+      <button type="button" class="icon-btn" title="Copiar" onclick="navigator.clipboard.writeText(document.getElementById('reset').textContent).then(() => { this.title = 'Copiado'; })">{{icon "copy"}}</button>
+    </div>
+    <div class="card-head" style="margin-top:1.75rem"><h2>{{icon "shield"}} Proteções</h2></div>
+    <div class="rows">
+      <div class="row"><span class="row-label">Tentativas erradas</span><span class="row-value">5 por IP, depois 15 min de espera</span></div>
+      <div class="row"><span class="row-label">Sessão do painel</span><span class="row-value">30 dias</span></div>
+      <div class="row"><span class="row-label">Acesso do app</span><span class="row-value">token por celular, <a href="/pairing">revogável</a></span></div>
+    </div>
+  </section>
+</div>
+{{template "bottom" .}}

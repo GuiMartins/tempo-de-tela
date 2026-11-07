@@ -1,0 +1,127 @@
+{{template "top" .}}
+<header class="page-head">
+  <div>
+    <h1>Visão geral</h1>
+    <p class="sub">O que está passando pelo DNS da casa.</p>
+  </div>
+</header>
+
+<section class="tiles">
+  <div class="card tile">
+    <div class="tile-top">Aparelhos<span class="tile-ico">{{icon "devices"}}</span></div>
+    <div class="tile-value">{{.Devices}}</div>
+    <div class="tile-sub"><span class="dot"></span>{{.Online}} online agora</div>
+  </div>
+  <div class="card tile">
+    <div class="tile-top">Usando o DNS da casa<span class="ring" style="--p: {{.Coverage}}"></span></div>
+    <div class="tile-value">{{.Coverage}}%</div>
+    <div class="tile-sub">{{.Covered}} de {{.LANDevices}} aparelhos da rede</div>
+  </div>
+  <div class="card tile">
+    <div class="tile-top">Consultas (24 h)<span class="tile-ico">{{icon "activity"}}</span></div>
+    <div class="tile-value">{{num .QueriesToday}}</div>
+    <div class="tile-sub">média de {{num .PerHour}} por hora</div>
+  </div>
+  <div class="card tile">
+    <div class="tile-top">Contornos bloqueados (24 h)<span class="tile-ico">{{icon "block"}}</span></div>
+    <div class="tile-value">{{num .Blocked}}</div>
+    <div class="tile-sub">tentativas de usar outro DNS</div>
+  </div>
+</section>
+
+<div class="grid">
+  <section class="card span-2">
+    <div class="card-head">
+      <h2>{{icon "activity"}} Consultas por hora</h2>
+      <span class="muted" style="font-size:.85rem">últimas 24 h{{if .QueriesToday}} · pico às {{.PeakHour}}h{{end}}</span>
+    </div>
+    {{if .QueriesToday}}
+    <div class="chart" role="img" aria-label="Consultas por hora nas últimas 24 horas">
+      {{range .Bars}}<div class="col" title="{{.Title}}"><div class="bar" style="height: {{.Height}}%"></div><span>{{.Label}}</span></div>{{end}}
+    </div>
+    {{else}}
+    <div class="empty">Ainda não há consultas registradas. Elas aparecem quando os aparelhos usam o DNS deste servidor.</div>
+    {{end}}
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "globe"}} Mais acessados</h2><span class="muted" style="font-size:.85rem">24 h</span></div>
+    {{if .Top}}
+    <div class="sites">
+      {{range .Top}}
+      <div class="site">
+        <div class="site-line"><span class="site-name">{{.Domain}}</span><span class="muted">{{num .Count}}</span></div>
+        <div class="progress"><span style="width: {{.Width}}%"></span></div>
+      </div>
+      {{end}}
+    </div>
+    {{else}}<div class="empty">Sem dados ainda.</div>{{end}}
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>{{icon "alert"}} Fora do DNS da casa</h2>
+      <a href="/devices?f=nodns" style="font-size:.88rem">Ver todos</a>
+    </div>
+    {{if .NotCovered}}
+    <div class="rows">
+      {{range .NotCovered}}
+      <div class="row">
+        <span class="status" style="min-width:0"><span class="mini-ico">{{icon .Icon}}</span><span class="ellipsis">{{.Label}}</span></span>
+        <span class="muted mono" style="font-size:.8rem">{{.IPv4}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{if .NotCoveredMore}}<p class="hint" style="margin-top:.75rem">e mais {{.NotCoveredMore}}.</p>{{end}}
+    <p class="hint" style="margin-top:.75rem">Esses aparelhos estão na rede mas perguntam a outro DNS (o secundário do roteador ou um DNS configurado neles).</p>
+    {{else if .LANDevices}}
+    <div class="empty">{{icon "check"}}<br>Todos os aparelhos da rede usam o DNS da casa.</div>
+    {{else}}
+    <div class="empty">Nenhum aparelho descoberto na rede ainda.</div>
+    {{end}}
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "server"}} Servidor</h2></div>
+    <div class="rows">
+      <div class="row"><span class="row-label">DNS</span><span class="row-value mono">{{.DNS.Addr}}</span></div>
+      <div class="row"><span class="row-label">Upstream</span><span class="row-value mono">{{range $i, $u := .Upstreams}}{{if $i}}, {{end}}{{$u}}{{end}}</span></div>
+      <div class="row"><span class="row-label">Interface da LAN</span><span class="row-value mono">{{or .Interface "—"}}</span></div>
+      {{range .Collectors}}
+      <div class="row"><span class="row-label">{{.Name}}</span><span class="status {{.State}}"><span class="dot"></span>{{.Status}}</span></div>
+      {{end}}
+      {{if .DNS.Queries}}<div class="row"><span class="row-label">Respondidas do cache</span><span class="row-value">{{.CacheRate}}% de {{num .DNS.Queries}}{{with .Uptime}} ({{.}}){{end}}</span></div>{{end}}
+      {{if .DNS.Failures}}<div class="row"><span class="row-label">Falhas no upstream</span><span class="row-value">{{num .DNS.Failures}}</span></div>{{end}}
+      <div class="row"><span class="row-label">Pessoas · apps pareados</span><span class="row-value">{{.Persons}} · <a href="/pairing">{{.Paired}}</a></span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "router"}} Roteador</h2></div>
+    <ol class="steps">
+      <li><span>No DHCP do roteador, coloque <code>{{.ServerIP}}</code> como DNS primário.</span></li>
+      <li><span>Deixe o secundário vazio ou igual. Com <code>8.8.8.8</code> lá, parte das consultas escapa.</span></li>
+      <li><span>Desligue o anúncio de DNS IPv6 do roteador, ou aponte para este servidor.</span></li>
+      <li><span>Nos celulares monitorados, desligue o DNS privado e use o MAC do aparelho no Wi-Fi de casa.</span></li>
+    </ol>
+    <p class="hint" style="margin-top:1rem"><strong>Se este servidor cair, a casa fica sem DNS.</strong> Para voltar ao normal, deixe o DNS do DHCP do roteador em automático.</p>
+  </section>
+</div>
+
+<style>
+  .chart { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 4px; height: 180px; align-items: end; padding-bottom: 1.4rem; position: relative; }
+  .col { position: relative; height: 100%; display: flex; align-items: flex-end; }
+  .bar { width: 100%; background: linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 65%, var(--surface))); border-radius: 5px 5px 2px 2px; transition: opacity .15s; }
+  .col:hover .bar { opacity: .75; }
+  .col span { position: absolute; bottom: -1.4rem; left: 50%; transform: translateX(-50%); font-size: .72rem; color: var(--faint); white-space: nowrap; }
+  .sites { display: grid; gap: .8rem; }
+  .site-line { display: flex; justify-content: space-between; gap: .75rem; font-size: .92rem; }
+  .site-name { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .site .progress { margin-top: .35rem; }
+  .site .progress span { background: var(--accent); }
+  .mini-ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); flex: none; }
+  .mini-ico .i { width: 16px; height: 16px; }
+  .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .empty .i { width: 28px; height: 28px; color: var(--ok); margin-bottom: .4rem; }
+</style>
+{{template "bottom" .}}

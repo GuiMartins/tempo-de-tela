@@ -1,23 +1,25 @@
-{{template "top"}}
-<header><h1>Tempo de Tela</h1></header>
-<main style="max-width: 24rem">
-{{if .Setup}}
-  <h2>Defina a senha do painel</h2>
-  <p class="muted">Quem tiver esta senha vê o histórico da casa, muda as configurações e pareia o app Android.</p>
-  {{with .Err}}<p class="msg err">{{.}}</p>{{end}}
+{{template "auth-top" (or (and .Setup "Definir senha") "Entrar")}}
+<div class="card">
+  <div class="auth-brand">
+    {{template "logo"}}
+    <div>
+      <h1 style="font-size:1.35rem">Tempo de Tela</h1>
+      <p class="sub">{{if .Setup}}Primeiro acesso: defina a senha do painel.{{else}}Entre com a senha do painel.{{end}}</p>
+    </div>
+  </div>
+  {{with .Err}}<div class="flash err" role="alert">{{icon "alert"}}<span>{{.}}</span></div>{{end}}
+  {{if .Setup}}
   <form class="stack" method="post" action="/setup">
-    <label>Senha <input type="password" name="password" minlength="8" autocomplete="new-password" required autofocus></label>
-    <label>Repita a senha <input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
-    <div><button>Salvar senha</button></div>
+    <label class="field"><span>Senha</span><input type="password" name="password" minlength="8" autocomplete="new-password" required autofocus><span class="hint">Pelo menos 8 caracteres. Quem tiver a senha vê o histórico da casa e pareia apps.</span></label>
+    <label class="field"><span>Repita a senha</span><input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+    <button class="btn">Salvar e entrar</button>
   </form>
-{{else}}
-  <h2>Entrar</h2>
-  {{with .Err}}<p class="msg err">{{.}}</p>{{end}}
+  {{else}}
   <form class="stack" method="post" action="/login">
-    <label>Senha <input type="password" name="password" autocomplete="current-password" required autofocus></label>
-    <div><button>Entrar</button></div>
+    <label class="field"><span>Senha</span><input type="password" name="password" autocomplete="current-password" required autofocus></label>
+    <button class="btn">Entrar</button>
   </form>
-  <p><small>Esqueceu a senha? No servidor, rode <code>docker exec tempo-de-tela /tempo-de-tela -reset-password</code> e defina outra.</small></p>
-{{end}}
-</main>
-{{template "bottom"}}
+  <p class="hint" style="margin-top:1.25rem;text-align:center">Esqueceu? No servidor: <code>docker exec tempo-de-tela /tempo-de-tela -reset-password</code></p>
+  {{end}}
+</div>
+{{template "auth-bottom"}}

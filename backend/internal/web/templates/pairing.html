@@ -1,0 +1,49 @@
+{{template "top" .}}
+<header class="page-head">
+  <div>
+    <h1>App Android</h1>
+    <p class="sub">É no app que você cadastra as pessoas, vincula os aparelhos e vê os relatórios.</p>
+  </div>
+  <a class="btn ghost" href="https://github.com/GuiMartins/tempo-de-tela/releases/latest" target="_blank" rel="noopener">{{icon "download"}}Baixar o app</a>
+</header>
+
+<div class="grid">
+  <section class="card">
+    <div class="card-head"><h2>{{icon "qr"}} Parear um celular</h2></div>
+    <ol class="steps">
+      <li><span>Instale o app no celular (APK da última versão, no botão acima).</span></li>
+      <li><span>Dê um nome a este pareamento e gere o QR code.</span></li>
+      <li><span>No app, toque em <strong>Ler QR code</strong>. Ele funciona em casa e, com a Tailscale ligada, fora de casa também.</span></li>
+    </ol>
+    <form method="post" action="/pair" class="pair-form">
+      <input name="name" placeholder="Ex.: Celular do Guilherme" maxlength="64" aria-label="Nome do pareamento">
+      <button class="btn">{{icon "qr"}}Gerar QR code</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "phone"}} Celulares pareados</h2><span class="badge">{{len .Tokens}}</span></div>
+    {{if .Tokens}}
+    <div class="rows">
+      {{range .Tokens}}
+      <div class="row">
+        <div style="min-width:0">
+          <strong>{{.Name}}</strong>
+          <div class="hint">Criado em {{formatTime .CreatedAt}} · {{if .LastUsed}}usado {{formatTime .LastUsed}}{{else}}nunca usado{{end}}</div>
+        </div>
+        <form method="post" action="/tokens/{{.ID}}/delete" onsubmit="return confirm('Revogar o acesso de {{.Name}}? O app desse celular vai precisar parear de novo.')">
+          <button class="btn sm danger">Revogar</button>
+        </form>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="empty">Nenhum celular pareado ainda.</div>
+    {{end}}
+  </section>
+</div>
+<style>
+  .pair-form { display: flex; gap: .6rem; margin-top: 1.25rem; flex-wrap: wrap; }
+  .pair-form input { flex: 1 1 14rem; }
+</style>
+{{template "bottom" .}}

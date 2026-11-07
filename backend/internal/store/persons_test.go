@@ -93,3 +93,35 @@ func TestAssignDevice(t *testing.T) {
 		t.Fatalf("pessoas = %d", len(persons))
 	}
 }
+
+func TestActivity(t *testing.T) {
+	ctx := context.Background()
+	st, err := OpenMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	now := time.Date(2026, 11, 7, 20, 30, 0, 0, time.UTC)
+	client := netip.MustParseAddr("192.168.1.50")
+	record := func(at time.Time, name string, status uint8) {
+		if err := st.RecordQuery(ctx, at, client, name, 1, status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	record(now, "rr3---sn-abc.googlevideo.com", 0)
+	record(now.Add(-time.Minute), "rr5---sn-def.googlevideo.com", 0)
+	record(now.Add(-2*time.Hour), "www.youtube.com", 0)
+	record(now.Add(-3*time.Hour), "dns.google", 1)
+	record(now.Add(-25*time.Hour), "old.example.com", 0)
+
+	act, err := st.Activity(ctx, now, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if act.Total != 4 || act.Blocked != 1 || act.Hourly[23] != 2 || act.Hourly[21] != 1 || act.Hourly[20] != 1 {
+		t.Fatalf("atividade = %+v", act)
+	}
+	if len(act.Top) != 2 || act.Top[0] != (DomainCount{"googlevideo.com", 2}) || act.Top[1].Domain != "youtube.com" {
+		t.Fatalf("mais consultados = %+v", act.Top)
+	}
+}

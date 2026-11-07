@@ -1,15 +1,26 @@
-{{template "top"}}
-<header><h1>Tempo de Tela</h1><nav><a href="/#pareamento">Voltar ao painel</a></nav></header>
-<main>
-  <h2>Parear “{{.Name}}”</h2>
-  <p>No app Android, toque em <strong>Parear servidor</strong> e leia o QR code. Ele só aparece agora: ao sair desta página, gere outro se precisar.</p>
-  <div style="width: min(20rem, 100%); background: #fff; padding: .5rem; border-radius: .5rem">{{.QR}}</div>
-  <details style="margin-top: 1rem">
+{{template "auth-top" "Parear celular"}}
+<div class="card" style="width:min(30rem,100%)">
+  <div class="auth-brand" style="margin-bottom:1rem">
+    <div>
+      <h1 style="font-size:1.35rem">Parear “{{.Name}}”</h1>
+      <p class="sub">No app, toque em <strong>Ler QR code</strong> e aponte para cá.</p>
+    </div>
+  </div>
+  <div class="qr">{{.QR}}</div>
+  <p class="hint" style="text-align:center;margin-top:1rem">O QR code só aparece agora. Se sair desta página, gere outro.</p>
+  <details class="manual">
     <summary>Configurar sem QR code</summary>
-    <p>Endereços do servidor:</p>
-    <ul>{{range .URLs}}<li><code>{{.}}</code></li>{{end}}</ul>
-    <p>Token: <code>{{.Token}}</code></p>
+    <div class="rows" style="margin-top:.75rem">
+      {{range .URLs}}<div class="row"><span class="row-label">Endereço</span><code class="row-value">{{.}}</code></div>{{end}}
+      <div class="row"><span class="row-label">Token</span><code class="row-value">{{.Token}}</code></div>
+    </div>
   </details>
-  <p><a href="/#pareamento">Concluir</a></p>
-</main>
-{{template "bottom"}}
+  <a class="btn" href="/pairing" style="width:100%;margin-top:1.25rem">{{icon "check"}}Concluir</a>
+</div>
+<style>
+  .qr { background: #fff; border-radius: 14px; padding: .75rem; width: min(19rem, 100%); margin: 0 auto; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .qr svg { display: block; width: 100%; height: auto; }
+  .manual { margin-top: 1.25rem; }
+  .manual summary { cursor: pointer; color: var(--accent); font-weight: 550; }
+</style>
+{{template "auth-bottom"}}

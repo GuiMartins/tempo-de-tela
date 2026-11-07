@@ -1,0 +1,64 @@
+{{template "top" .}}
+<header class="page-head">
+  <div>
+    <h1>Configurações</h1>
+    <p class="sub">As mudanças valem na hora, sem reiniciar (menos a interface da LAN).</p>
+  </div>
+</header>
+
+<form method="post" action="/settings" class="stack" style="max-width: 760px">
+  <section class="card">
+    <div class="card-head"><h2>{{icon "globe"}} DNS</h2></div>
+    <div class="stack">
+      <label class="field">
+        <span>Servidores upstream</span>
+        <textarea name="upstreams" rows="3" required spellcheck="false">{{.UpstreamsText}}</textarea>
+        <span class="hint">Um por linha: IP, IP:porta ou DNS-over-HTTPS por IP (<code>https://1.1.1.1/dns-query</code>). Se o primeiro falhar, o próximo responde.</span>
+      </label>
+      <label class="field">
+        <span>TTL máximo entregue aos aparelhos</span>
+        <div class="unit"><input type="number" name="max_client_ttl" min="5" max="86400" value="{{.Settings.MaxClientTTL}}" required><span>segundos</span></div>
+        <span class="hint">Com TTL curto, os aparelhos perguntam de novo com frequência e a duração do uso fica mais precisa.</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" name="block_bypass" value="1" {{if .Settings.BlockBypass}}checked{{end}}>
+        <span class="track"></span>
+        <span><strong>Bloquear contorno do DNS</strong><span class="hint">Responde “não existe” para DNS-over-HTTPS conhecidos (Google, Cloudflare…), para o sinal do Firefox e para o iCloud Private Relay, pra os aparelhos usarem o DNS da casa.</span></span>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "wifi"}} Descoberta na rede</h2>{{with .LAN.Interface}}<span class="badge">{{icon "check"}}usando {{.}}</span>{{end}}</div>
+    <div class="stack">
+      <label class="field">
+        <span>Intervalo da varredura</span>
+        <div class="unit"><input type="number" name="scan_interval_sec" min="30" max="3600" value="{{.Settings.ScanIntervalSec}}" required><span>segundos</span></div>
+        <span class="hint">De quanto em quanto tempo o servidor procura aparelhos na rede (ARP e mDNS).</span>
+      </label>
+      <label class="field">
+        <span>Interface da LAN</span>
+        <input name="interface" value="{{.Settings.Interface}}" placeholder="automática (rota padrão)" spellcheck="false" style="max-width: 18rem">
+        <span class="hint">Deixe vazio para usar a interface da rota padrão. Vale depois de reiniciar o app.</span>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>{{icon "database"}} Histórico</h2></div>
+    <label class="field">
+      <span>Guardar as consultas por</span>
+      <div class="unit"><input type="number" name="retention_days" min="1" max="3650" value="{{.Settings.RetentionDays}}" required><span>dias</span></div>
+      <span class="hint">Consultas mais antigas que isso são apagadas automaticamente.</span>
+    </label>
+  </section>
+
+  <div class="savebar"><button class="btn">{{icon "check"}}Salvar configurações</button></div>
+</form>
+<style>
+  .unit { display: flex; align-items: center; gap: .6rem; color: var(--muted); }
+  .savebar { position: sticky; bottom: 1rem; display: flex; justify-content: flex-end; }
+  .savebar .btn { box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .switch .hint { display: block; margin-top: .15rem; }
+</style>
+{{template "bottom" .}}
