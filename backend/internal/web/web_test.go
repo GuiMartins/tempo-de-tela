@@ -206,3 +206,36 @@ func TestPairingAndAPI(t *testing.T) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// Em HTTP por IP da LAN o navegador não manda Sec-Fetch-Site; o POST só passa com o Origin real.
+func TestFormPostOverPlainHTTP(t *testing.T) {
+	srv, _, _ := newServer(t)
+	resp, err := http.Get(srv.URL + "/setup")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("Referrer-Policy"); got == "no-referrer" {
+		t.Fatal("no-referrer faz o navegador mandar Origin: null e quebra os formulários")
+	}
+
+	form := url.Values{"password": {"senha-boa-123"}, "confirm": {"senha-boa-123"}}.Encode()
+	send := func(origin string) int {
+		req, _ := http.NewRequest("POST", srv.URL+"/setup", strings.NewReader(form))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Origin", origin)
+		c := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		resp, err := c.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	if code := send("http://outro-site.example"); code != http.StatusForbidden {
+		t.Fatalf("POST de outra origem deveria dar 403, deu %d", code)
+	}
+	if code := send(srv.URL); code != http.StatusSeeOther {
+		t.Fatalf("POST da mesma origem sem Sec-Fetch-Site deveria passar, deu %d", code)
+	}
+}

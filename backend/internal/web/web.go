@@ -428,7 +428,9 @@ func render(w http.ResponseWriter, status int, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Frame-Options", "DENY")
-	w.Header().Set("Referrer-Policy", "no-referrer")
+	// same-origin, não no-referrer: com no-referrer o navegador manda "Origin: null" no POST
+	// e, em HTTP pela LAN (sem Sec-Fetch-Site), a proteção cross-origin recusa o formulário.
+	w.Header().Set("Referrer-Policy", "same-origin")
 	w.WriteHeader(status)
 	if err := pages.ExecuteTemplate(w, name, data); err != nil {
 		slog.Warn("falha ao exibir página", "página", name, "erro", err)
