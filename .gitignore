@@ -1,0 +1,15 @@
+# Go
+/backend/tempo-de-tela
+*.test
+*.out
+
+# Dados locais
+*.db
+*.db-wal
+*.db-shm
+/data/
+
+# Sistema / editores
+.DS_Store
+.idea/
+.vscode/
