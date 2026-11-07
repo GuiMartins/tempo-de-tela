@@ -1,0 +1,23 @@
+{{template "top"}}
+<header><h1>Tempo de Tela</h1></header>
+<main style="max-width: 24rem">
+{{if .Setup}}
+  <h2>Defina a senha do painel</h2>
+  <p class="muted">Quem tiver esta senha vê o histórico da casa, muda as configurações e pareia o app Android.</p>
+  {{with .Err}}<p class="msg err">{{.}}</p>{{end}}
+  <form class="stack" method="post" action="/setup">
+    <label>Senha <input type="password" name="password" minlength="8" autocomplete="new-password" required autofocus></label>
+    <label>Repita a senha <input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+    <div><button>Salvar senha</button></div>
+  </form>
+{{else}}
+  <h2>Entrar</h2>
+  {{with .Err}}<p class="msg err">{{.}}</p>{{end}}
+  <form class="stack" method="post" action="/login">
+    <label>Senha <input type="password" name="password" autocomplete="current-password" required autofocus></label>
+    <div><button>Entrar</button></div>
+  </form>
+  <p><small>Esqueceu a senha? No servidor, rode <code>docker exec tempo-de-tela /tempo-de-tela -reset-password</code> e defina outra.</small></p>
+{{end}}
+</main>
+{{template "bottom"}}

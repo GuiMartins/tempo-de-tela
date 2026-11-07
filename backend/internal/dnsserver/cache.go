@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	maxCacheTTL      = time.Hour
-	maxNegativeTTL   = 5 * time.Minute
-	minCacheableTTL  = time.Second
+	maxCacheTTL     = time.Hour
+	maxNegativeTTL  = 5 * time.Minute
+	minCacheableTTL = time.Second
 )
 
 type cacheEntry struct {

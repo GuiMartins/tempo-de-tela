@@ -1,0 +1,66 @@
+# Manifesto CasaOS / ZimaOS do Tempo de Tela
+name: tempo-de-tela
+services:
+  tempo-de-tela:
+    image: ghcr.io/guimartins/tempo-de-tela:latest
+    container_name: tempo-de-tela
+    restart: unless-stopped
+    # Rede do host: o DNS precisa ver o IP real de cada aparelho e os coletores escutam a LAN.
+    network_mode: host
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - NET_RAW
+    environment:
+      TZ: America/Sao_Paulo
+    volumes:
+      - type: bind
+        source: /DATA/AppData/tempo-de-tela/data
+        target: /appdata
+    x-casaos:
+      volumes:
+        - container: /appdata
+          description:
+            en_us: Database (devices, people, DNS queries) and settings
+            pt_br: Banco de dados (aparelhos, pessoas, consultas DNS) e configurações
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: tempo-de-tela
+  author: GuiMartins
+  developer: GuiMartins
+  category: Network
+  description:
+    en_us: >-
+      Home DNS server that discovers the devices on your network, links each one
+      to a person and shows screen time per app and per hour. Pair the Android
+      app to see the reports. Only metadata (domain and time) is recorded, and
+      nothing leaves your server.
+    pt_br: >-
+      Servidor DNS da casa que descobre os aparelhos da rede, vincula cada um a
+      uma pessoa e mostra o tempo de tela por app e por horário. Pareie o app
+      Android para ver os relatórios. Só metadados (domínio e horário) são
+      gravados, e nada sai do servidor.
+  icon: https://raw.githubusercontent.com/GuiMartins/tempo-de-tela/main/icon.svg
+  screenshot_link: []
+  tagline:
+    en_us: Screen time and parental control from your home DNS
+    pt_br: Tempo de tela e controle parental pelo DNS da casa
+  thumbnail: ""
+  title:
+    en_us: Tempo de Tela
+  tips:
+    before_install:
+      en_us: >-
+        The app serves DNS on port 53 and the web UI on port 8994 (host network).
+        Stop any other DNS server on this machine (Pi-hole, AdGuard Home) first.
+        Then point your router's DHCP DNS to this server.
+      pt_br: >-
+        O app responde DNS na porta 53 e o painel fica na porta 8994 (rede do host).
+        Pare antes qualquer outro DNS desta máquina (Pi-hole, AdGuard Home).
+        Depois aponte o DNS do DHCP do roteador para este servidor.
+  index: /
+  port_map: "8994"
+  scheme: http

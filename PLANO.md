@@ -4,13 +4,15 @@ Nome: **`tempo-de-tela`**.
 
 ## Status (07/11/2026)
 
-Fase 1 em andamento. O executável local integra DNS, SQLite, registro assíncrono, retenção
-e um painel de cobertura com `GET /api/v1/devices` em loopback. Os coletores Linux de ARP,
-DHCPv4 passivo e mDNS via IPv4 identificam aparelhos pelo MAC e enriquecem o inventário.
-As consultas sem associação confirmada continuam por IP.
-Faltam na fase 1 a validação dos coletores com as permissões do deploy, a descoberta por
-SSDP/NetBIOS, os controles e o pareamento no painel, a autenticação da API, a imagem Docker,
-o pacote CasaOS e o deploy.
+Fase 1 em andamento. O executável integra DNS, SQLite, registro assíncrono, retenção, os
+coletores Linux de ARP, DHCPv4 passivo e mDNS via IPv4 (aparelho identificado pelo MAC) e o
+painel web com senha: cobertura dos aparelhos (renomear, ocultar), configurações editáveis,
+troca de senha, instruções do roteador e pareamento do app Android por QR code (token por
+aparelho, revogável). A API `/api/v1` exige o token do pareamento. Dockerfile (distroless,
+amd64+arm64), `casaos/docker-compose.yml` (rede do host, só `NET_RAW` e `NET_BIND_SERVICE`)
+e workflow do GHCR prontos.
+Faltam na fase 1 o deploy no zima (parar o `pihole`), a validação dos coletores com as
+permissões do container e a descoberta por SSDP/NetBIOS.
 Alternativa pronta considerada: AdGuard Home (clientes nomeados, serviços bloqueados por aparelho,
 agenda, controle parental e busca segura).
 

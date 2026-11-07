@@ -1,0 +1,15 @@
+{{template "top"}}
+<header><h1>Tempo de Tela</h1><nav><a href="/#pareamento">Voltar ao painel</a></nav></header>
+<main>
+  <h2>Parear “{{.Name}}”</h2>
+  <p>No app Android, toque em <strong>Parear servidor</strong> e leia o QR code. Ele só aparece agora: ao sair desta página, gere outro se precisar.</p>
+  <div style="width: min(20rem, 100%); background: #fff; padding: .5rem; border-radius: .5rem">{{.QR}}</div>
+  <details style="margin-top: 1rem">
+    <summary>Configurar sem QR code</summary>
+    <p>Endereços do servidor:</p>
+    <ul>{{range .URLs}}<li><code>{{.}}</code></li>{{end}}</ul>
+    <p>Token: <code>{{.Token}}</code></p>
+  </details>
+  <p><a href="/#pareamento">Concluir</a></p>
+</main>
+{{template "bottom"}}

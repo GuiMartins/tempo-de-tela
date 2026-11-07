@@ -89,3 +89,10 @@ CREATE TABLE IF NOT EXISTS device_addresses (
   PRIMARY KEY (ip, since)
 );
 CREATE INDEX IF NOT EXISTS idx_device_addresses_expiry ON device_addresses(valid_until);
+
+-- Sessões do painel web (hash SHA-256 do cookie).
+CREATE TABLE IF NOT EXISTS sessions (
+  hash       TEXT PRIMARY KEY,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);

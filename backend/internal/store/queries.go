@@ -81,10 +81,11 @@ type DeviceCoverage struct {
 	LastDNS   int64  `json:"last_dns"`
 }
 
-func (s *Store) DeviceCoverage(ctx context.Context) ([]DeviceCoverage, error) {
+// DeviceCoverage lista os aparelhos visíveis (hidden = false) ou os ocultos.
+func (s *Store) DeviceCoverage(ctx context.Context, hidden bool) ([]DeviceCoverage, error) {
 	rows, err := s.DB.QueryContext(ctx, `
 		SELECT id, name, mac, hostname, mdns_name, vendor, os_guess, kind_guess, random_mac, ipv4, ipv6, last_seen, last_dns FROM devices
-		WHERE hidden = 0 ORDER BY last_dns DESC, last_seen DESC, id`)
+		WHERE hidden = ? ORDER BY last_dns DESC, last_seen DESC, id`, hidden)
 	if err != nil {
 		return nil, err
 	}
