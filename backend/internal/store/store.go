@@ -73,7 +73,6 @@ func (s *Store) Prune(ctx context.Context, retentionDays int) (int64, error) {
 		return 0, err
 	}
 	n, _ := res.RowsAffected()
-	// A tabela domains não é limpa: o logger guarda os ids em cache, e ela cresce devagar.
 	_, err = s.DB.ExecContext(ctx, `DELETE FROM events WHERE ts < ?`, cut)
 	return n, err
 }

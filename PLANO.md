@@ -4,9 +4,10 @@ Nome: **`tempo-de-tela`**.
 
 ## Status (07/11/2026)
 
-Implementação **pausada** no backend. Pronto em `backend/`: servidor DNS (cache, limite de TTL,
-failover, anti-contorno, com testes), banco SQLite, configurações e base de fabricantes por MAC.
-Falta: inventário de aparelhos, API, UI mínima, Docker/CasaOS, CI e o app Android.
+Fase 1 em andamento. O executável local integra DNS, SQLite, registro assíncrono, retenção
+e um painel de cobertura com `GET /api/v1/devices` em loopback. A identificação ainda é por IP.
+Faltam na fase 1 os coletores LAN e a identificação por MAC, os controles e o pareamento no
+painel, a autenticação da API, a imagem Docker, o pacote CasaOS e o deploy.
 Alternativa pronta considerada: AdGuard Home (clientes nomeados, serviços bloqueados por aparelho,
 agenda, controle parental e busca segura).
 

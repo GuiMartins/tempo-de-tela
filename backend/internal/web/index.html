@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tempo de Tela</title>
+<style>
+  :root { color-scheme: light dark; font: 1rem system-ui, sans-serif; }
+  body { max-width: 58rem; margin: 3rem auto; padding: 0 1rem; }
+  dl { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  dd { margin: .25rem 0 0; font-size: 1.2rem; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: .6rem; border-bottom: 1px solid GrayText; }
+  .table { overflow-x: auto; }
+</style>
+<h1>Tempo de Tela</h1>
+<p>DNS escutando em <code>{{.DNS}}</code></p>
+<dl>
+  <div><dt>Consultas</dt><dd>{{.Queries}}</dd></div>
+  <div><dt>Respostas do cache</dt><dd>{{.CacheHits}}</dd></div>
+  <div><dt>Falhas de encaminhamento</dt><dd>{{.Failures}}</dd></div>
+  <div><dt>Registros perdidos</dt><dd>{{.Dropped}}</dd></div>
+</dl>
+<h2>Cobertura do DNS</h2>
+<p>Os clientes são identificados pelo IP de origem. Esta lista mostra somente os clientes já vistos pelo servidor.</p>
+<div class="table">
+<table>
+<thead><tr><th>Nome</th><th>IP</th><th>Última consulta</th></tr></thead>
+<tbody>
+{{range .Devices}}
+<tr>
+  <td>{{if .Name}}{{.Name}}{{else}}—{{end}}</td>
+  <td>{{if .IPv4}}{{.IPv4}}{{end}}{{if and .IPv4 .IPv6}}<br>{{end}}{{if .IPv6}}{{.IPv6}}{{end}}</td>
+  <td>{{formatTime .LastDNS}}</td>
+</tr>
+{{else}}
+<tr><td colspan="3">Nenhum cliente registrado ainda.</td></tr>
+{{end}}
+</tbody>
+</table>
+</div>
+</html>

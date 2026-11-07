@@ -85,18 +85,25 @@ func (s *Server) Listen(addr string) error {
 	if err != nil {
 		return fmt.Errorf("DNS UDP %s: %w", addr, err)
 	}
-	l, err := net.Listen("tcp", addr)
+	l, err := net.Listen("tcp", pc.LocalAddr().String())
 	if err != nil {
 		pc.Close()
 		return fmt.Errorf("DNS TCP %s: %w", addr, err)
 	}
-	udp := &dns.Server{PacketConn: pc, Handler: s}
-	tcp := &dns.Server{Listener: l, Handler: s, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second}
+	udpReady := make(chan struct{})
+	tcpReady := make(chan struct{})
+	udp := &dns.Server{PacketConn: pc, Handler: s, NotifyStartedFunc: func() { close(udpReady) }}
+	tcp := &dns.Server{
+		Listener: l, Handler: s, NotifyStartedFunc: func() { close(tcpReady) },
+		ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second,
+	}
 	s.mu.Lock()
 	s.servers = append(s.servers, udp, tcp)
-	s.mu.Unlock()
+	defer s.mu.Unlock()
 	go udp.ActivateAndServe()
 	go tcp.ActivateAndServe()
+	<-udpReady
+	<-tcpReady
 	return nil
 }
 
