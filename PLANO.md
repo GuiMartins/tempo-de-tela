@@ -5,9 +5,12 @@ Nome: **`tempo-de-tela`**.
 ## Status (07/11/2026)
 
 Fase 1 em andamento. O executável local integra DNS, SQLite, registro assíncrono, retenção
-e um painel de cobertura com `GET /api/v1/devices` em loopback. A identificação ainda é por IP.
-Faltam na fase 1 os coletores LAN e a identificação por MAC, os controles e o pareamento no
-painel, a autenticação da API, a imagem Docker, o pacote CasaOS e o deploy.
+e um painel de cobertura com `GET /api/v1/devices` em loopback. Os coletores Linux de ARP,
+DHCPv4 passivo e mDNS via IPv4 identificam aparelhos pelo MAC e enriquecem o inventário.
+As consultas sem associação confirmada continuam por IP.
+Faltam na fase 1 a validação dos coletores com as permissões do deploy, a descoberta por
+SSDP/NetBIOS, os controles e o pareamento no painel, a autenticação da API, a imagem Docker,
+o pacote CasaOS e o deploy.
 Alternativa pronta considerada: AdGuard Home (clientes nomeados, serviços bloqueados por aparelho,
 agenda, controle parental e busca segura).
 

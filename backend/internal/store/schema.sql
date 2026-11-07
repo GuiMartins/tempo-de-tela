@@ -79,3 +79,13 @@ CREATE TABLE IF NOT EXISTS events (
   data      TEXT NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+
+-- Intervalos confirmados pelos coletores, em nanossegundos. Um IP pode trocar de dono.
+CREATE TABLE IF NOT EXISTS device_addresses (
+  ip         TEXT NOT NULL,
+  since      INTEGER NOT NULL,
+  valid_until INTEGER NOT NULL,
+  device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+  PRIMARY KEY (ip, since)
+);
+CREATE INDEX IF NOT EXISTS idx_device_addresses_expiry ON device_addresses(valid_until);

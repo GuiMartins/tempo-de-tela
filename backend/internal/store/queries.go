@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"net/netip"
 	"time"
 )
@@ -22,8 +23,13 @@ func (s *Store) RecordQuery(ctx context.Context, seen time.Time, client netip.Ad
 	}
 	defer tx.Rollback()
 
-	var deviceID int64
-	err = tx.QueryRowContext(ctx, `
+	deviceID, err := deviceAt(ctx, tx, ip, seen.UnixNano())
+	switch err {
+	case nil:
+		_, err = tx.ExecContext(ctx, `UPDATE devices SET last_seen = max(last_seen, ?), last_dns = max(last_dns, ?) WHERE id = ?`,
+			ts, ts, deviceID)
+	case sql.ErrNoRows:
+		err = tx.QueryRowContext(ctx, `
 		INSERT INTO devices (key, ipv4, ipv6, first_seen, last_seen, last_dns)
 		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(key) DO UPDATE SET
@@ -31,6 +37,7 @@ func (s *Store) RecordQuery(ctx context.Context, seen time.Time, client netip.Ad
 			last_seen = max(last_seen, excluded.last_seen),
 			last_dns = max(last_dns, excluded.last_dns)
 		RETURNING id`, "ip:"+ip, ipv4, ipv6, ts, ts, ts).Scan(&deviceID)
+	}
 	if err != nil {
 		return err
 	}
@@ -59,17 +66,24 @@ func (s *Store) RecordQuery(ctx context.Context, seen time.Time, client netip.Ad
 }
 
 type DeviceCoverage struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	IPv4     string `json:"ipv4"`
-	IPv6     string `json:"ipv6"`
-	LastSeen int64  `json:"last_seen"`
-	LastDNS  int64  `json:"last_dns"`
+	ID        int64  `json:"id"`
+	MAC       string `json:"mac"`
+	Hostname  string `json:"hostname"`
+	MDNSName  string `json:"mdns_name"`
+	Vendor    string `json:"vendor"`
+	OSGuess   string `json:"os_guess"`
+	KindGuess string `json:"kind_guess"`
+	RandomMAC bool   `json:"random_mac"`
+	Name      string `json:"name"`
+	IPv4      string `json:"ipv4"`
+	IPv6      string `json:"ipv6"`
+	LastSeen  int64  `json:"last_seen"`
+	LastDNS   int64  `json:"last_dns"`
 }
 
 func (s *Store) DeviceCoverage(ctx context.Context) ([]DeviceCoverage, error) {
 	rows, err := s.DB.QueryContext(ctx, `
-		SELECT id, name, ipv4, ipv6, last_seen, last_dns FROM devices
+		SELECT id, name, mac, hostname, mdns_name, vendor, os_guess, kind_guess, random_mac, ipv4, ipv6, last_seen, last_dns FROM devices
 		WHERE hidden = 0 ORDER BY last_dns DESC, last_seen DESC, id`)
 	if err != nil {
 		return nil, err
@@ -78,7 +92,7 @@ func (s *Store) DeviceCoverage(ctx context.Context) ([]DeviceCoverage, error) {
 	devices := []DeviceCoverage{}
 	for rows.Next() {
 		var device DeviceCoverage
-		if err := rows.Scan(&device.ID, &device.Name, &device.IPv4, &device.IPv6, &device.LastSeen, &device.LastDNS); err != nil {
+		if err := rows.Scan(&device.ID, &device.Name, &device.MAC, &device.Hostname, &device.MDNSName, &device.Vendor, &device.OSGuess, &device.KindGuess, &device.RandomMAC, &device.IPv4, &device.IPv6, &device.LastSeen, &device.LastDNS); err != nil {
 			return nil, err
 		}
 		devices = append(devices, device)

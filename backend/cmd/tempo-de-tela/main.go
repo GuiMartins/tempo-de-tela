@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/querylog"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
@@ -24,17 +25,19 @@ func main() {
 	dataDir := flag.String("data", "data", "diretório de dados")
 	dnsAddr := flag.String("dns", "127.0.0.1:1053", "endereço DNS (UDP e TCP)")
 	webAddr := flag.String("http", "127.0.0.1:8994", "endereço HTTP de loopback")
+	lanEnabled := flag.Bool("lan", false, "ativa ARP, DHCP passivo e mDNS na LAN (Linux)")
+	lanInterface := flag.String("lan-interface", "", "interface dos coletores LAN (padrão: rota IPv4)")
 	flag.Parse()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := run(ctx, *dataDir, *dnsAddr, *webAddr); err != nil {
+	if err := run(ctx, *dataDir, *dnsAddr, *webAddr, *lanEnabled, *lanInterface); err != nil {
 		slog.Error("tempo-de-tela", "erro", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, dataDir, dnsAddr, webAddr string) error {
+func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool, lanInterface string) error {
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		return err
 	}
@@ -70,8 +73,11 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string) error {
 		log.Run(logCtx, st, func() int { return cfg.Get().RetentionDays })
 	}()
 
+	lanCtx, stopLAN := context.WithCancel(ctx)
+	lan, lanDone := collectors.Start(lanCtx, st, cfg.Get, lanEnabled, lanInterface)
+	defer func() { stopLAN(); <-lanDone }()
 	httpServer := &http.Server{
-		Handler:           web.Handler(st, dns, log.Dropped),
+		Handler:           web.Handler(st, dns, log.Dropped, lan.Status),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,
 	}

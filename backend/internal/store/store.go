@@ -67,12 +67,15 @@ func (s *Store) Prune(ctx context.Context, retentionDays int) (int64, error) {
 	if retentionDays <= 0 {
 		return 0, nil
 	}
-	cut := time.Now().AddDate(0, 0, -retentionDays).Unix()
-	res, err := s.DB.ExecContext(ctx, `DELETE FROM queries WHERE ts < ?`, cut)
+	cut := time.Now().AddDate(0, 0, -retentionDays)
+	res, err := s.DB.ExecContext(ctx, `DELETE FROM queries WHERE ts < ?`, cut.Unix())
 	if err != nil {
 		return 0, err
 	}
 	n, _ := res.RowsAffected()
-	_, err = s.DB.ExecContext(ctx, `DELETE FROM events WHERE ts < ?`, cut)
+	if _, err := s.DB.ExecContext(ctx, `DELETE FROM events WHERE ts < ?`, cut.Unix()); err != nil {
+		return n, err
+	}
+	_, err = s.DB.ExecContext(ctx, `DELETE FROM device_addresses WHERE valid_until < ?`, cut.UnixNano())
 	return n, err
 }

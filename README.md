@@ -26,9 +26,18 @@ go run ./cmd/tempo-de-tela
 ```
 
 O DNS usa `127.0.0.1:1053` (UDP e TCP) e o painel fica em <http://127.0.0.1:8994>.
-O painel e `GET /api/v1/devices` mostram a cobertura por IP dos clientes que consultaram
-esse DNS. As consultas vão para o SQLite em `./data` de forma assíncrona. As opções
-`-dns`, `-http` e `-data` permitem alterar esses padrões.
+O painel e `GET /api/v1/devices` mostram a cobertura dos aparelhos. As consultas vão para o
+SQLite em `./data` de forma assíncrona. As opções `-dns`, `-http` e `-data` permitem
+alterar esses padrões.
+
+No Linux, `-lan` ativa a varredura ARP, a escuta passiva de DHCPv4 e a descoberta mDNS via
+IPv4. ARP e DHCP passivo precisam de `CAP_NET_RAW`. A interface vem da rota IPv4 padrão,
+ou pode ser selecionada com `-lan-interface`. Em redes maiores que /24, a varredura ativa
+fica no /24 do servidor. O painel exibe o estado de cada coletor.
+
+As consultas de um IP com associação recente entram no histórico do MAC confirmado.
+Consultas anteriores à confirmação, de IPs sem associação ou via IPv6 ficam no histórico
+por IP.
 
 ## Testes
 
