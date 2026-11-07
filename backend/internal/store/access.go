@@ -104,14 +104,6 @@ func (s *Store) DeleteSetting(ctx context.Context, key string) error {
 	return err
 }
 
-func (s *Store) RenameDevice(ctx context.Context, id int64, name string) error {
-	return expectRow(s.DB.ExecContext(ctx, `UPDATE devices SET name = ? WHERE id = ?`, name, id))
-}
-
-func (s *Store) SetDeviceHidden(ctx context.Context, id int64, hidden bool) error {
-	return expectRow(s.DB.ExecContext(ctx, `UPDATE devices SET hidden = ? WHERE id = ?`, hidden, id))
-}
-
 func expectRow(res sql.Result, err error) error {
 	if err != nil {
 		return err

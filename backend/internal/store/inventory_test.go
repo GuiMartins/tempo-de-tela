@@ -69,7 +69,7 @@ func TestQueriesFollowConfirmedAddressIntervals(t *testing.T) {
 			t.Errorf("%s: chave = %q, erro = %v, esperado %q", name, key, err, want)
 		}
 	}
-	devices, err := st.DeviceCoverage(ctx, false)
+	devices, err := st.DeviceCoverage(ctx, VisibleDevices)
 	if err != nil {
 		t.Fatal(err)
 	}

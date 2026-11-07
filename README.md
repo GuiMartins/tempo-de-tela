@@ -68,7 +68,13 @@ painel (o QR code leva `{"v":1,"urls":[...],"token":"tdt_..."}`). A sessão do p
 também vale.
 
 - `GET /api/v1/status`: versão, contadores do DNS e estado dos coletores.
-- `GET /api/v1/devices`: aparelhos visíveis.
+- `GET /api/v1/devices` (`?filter=all` inclui os ocultos), `GET /api/v1/devices/{id}`.
+- `PATCH /api/v1/devices/{id}`: `{"name", "kind", "hidden"}`, só os campos enviados.
+- `PUT /api/v1/devices/{id}/person`: `{"person_id": 3}` ou `{"person_id": null}`. O primeiro
+  vínculo de um aparelho vale desde que ele apareceu na rede; as trocas valem a partir de agora.
+- `GET|POST /api/v1/persons`, `GET|PATCH|DELETE /api/v1/persons/{id}`: `{"name", "emoji",
+  "kind": "child|adult|shared", "monitoring"}`. Com `monitoring` falso, as consultas dos
+  aparelhos da pessoa não são gravadas.
 - `GET /healthz`: sem autenticação, para o healthcheck.
 
 ## Testes

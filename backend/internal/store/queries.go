@@ -64,39 +64,3 @@ func (s *Store) RecordQuery(ctx context.Context, seen time.Time, client netip.Ad
 	}
 	return tx.Commit()
 }
-
-type DeviceCoverage struct {
-	ID        int64  `json:"id"`
-	MAC       string `json:"mac"`
-	Hostname  string `json:"hostname"`
-	MDNSName  string `json:"mdns_name"`
-	Vendor    string `json:"vendor"`
-	OSGuess   string `json:"os_guess"`
-	KindGuess string `json:"kind_guess"`
-	RandomMAC bool   `json:"random_mac"`
-	Name      string `json:"name"`
-	IPv4      string `json:"ipv4"`
-	IPv6      string `json:"ipv6"`
-	LastSeen  int64  `json:"last_seen"`
-	LastDNS   int64  `json:"last_dns"`
-}
-
-// DeviceCoverage lista os aparelhos visíveis (hidden = false) ou os ocultos.
-func (s *Store) DeviceCoverage(ctx context.Context, hidden bool) ([]DeviceCoverage, error) {
-	rows, err := s.DB.QueryContext(ctx, `
-		SELECT id, name, mac, hostname, mdns_name, vendor, os_guess, kind_guess, random_mac, ipv4, ipv6, last_seen, last_dns FROM devices
-		WHERE hidden = ? ORDER BY last_dns DESC, last_seen DESC, id`, hidden)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	devices := []DeviceCoverage{}
-	for rows.Next() {
-		var device DeviceCoverage
-		if err := rows.Scan(&device.ID, &device.Name, &device.MAC, &device.Hostname, &device.MDNSName, &device.Vendor, &device.OSGuess, &device.KindGuess, &device.RandomMAC, &device.IPv4, &device.IPv6, &device.LastSeen, &device.LastDNS); err != nil {
-			return nil, err
-		}
-		devices = append(devices, device)
-	}
-	return devices, rows.Err()
-}

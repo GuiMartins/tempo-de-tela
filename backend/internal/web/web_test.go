@@ -126,7 +126,7 @@ func TestPanelFlow(t *testing.T) {
 		t.Fatal("nome do aparelho deveria aparecer no painel")
 	}
 	post(t, c, srv.URL+"/devices/"+itoa(id), url.Values{"action": {"hide"}})
-	if devices, _ := st.DeviceCoverage(ctx, false); len(devices) != 0 {
+	if devices, _ := st.DeviceCoverage(ctx, store.VisibleDevices); len(devices) != 0 {
 		t.Fatal("aparelho ocultado não deveria aparecer na lista")
 	}
 

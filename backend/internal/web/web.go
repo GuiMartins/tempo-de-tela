@@ -69,7 +69,7 @@ func Handler(d Deps) http.Handler {
 	mux.HandleFunc("POST /tokens/{id}/delete", h.panel(h.deleteToken))
 
 	mux.HandleFunc("GET /api/v1/status", h.api(h.status))
-	mux.HandleFunc("GET /api/v1/devices", h.api(h.devices))
+	h.apiRoutes(mux)
 	return http.NewCrossOriginProtection().Handler(mux)
 }
 
@@ -249,12 +249,12 @@ func (h *handler) dnsStats() dnsStats {
 
 func (h *handler) index(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	devices, err := h.Store.DeviceCoverage(ctx, false)
+	devices, err := h.Store.DeviceCoverage(ctx, store.VisibleDevices)
 	if err != nil {
 		http.Error(w, "Inventário indisponível", http.StatusServiceUnavailable)
 		return
 	}
-	hidden, err := h.Store.DeviceCoverage(ctx, true)
+	hidden, err := h.Store.DeviceCoverage(ctx, store.HiddenDevices)
 	if err != nil {
 		http.Error(w, "Inventário indisponível", http.StatusServiceUnavailable)
 		return
@@ -339,18 +339,19 @@ func (h *handler) updateDevice(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	var msg string
+	yes, no := true, false
 	switch r.PostFormValue("action") {
 	case "hide":
-		err, msg = h.Store.SetDeviceHidden(ctx, id, true), "Aparelho ocultado."
+		err, msg = h.Store.UpdateDevice(ctx, id, store.DeviceUpdate{Hidden: &yes}), "Aparelho ocultado."
 	case "show":
-		err, msg = h.Store.SetDeviceHidden(ctx, id, false), "Aparelho visível de novo."
+		err, msg = h.Store.UpdateDevice(ctx, id, store.DeviceUpdate{Hidden: &no}), "Aparelho visível de novo."
 	default:
 		name := strings.TrimSpace(r.PostFormValue("name"))
-		if utf8.RuneCountInString(name) > 64 {
+		if utf8.RuneCountInString(name) > maxNameLen {
 			back(w, r, "aparelhos", "", "Nome muito longo (máximo 64 caracteres).")
 			return
 		}
-		err, msg = h.Store.RenameDevice(ctx, id, name), "Nome salvo."
+		err, msg = h.Store.UpdateDevice(ctx, id, store.DeviceUpdate{Name: &name}), "Nome salvo."
 	}
 	if errors.Is(err, store.ErrNotFound) {
 		back(w, r, "aparelhos", "", "Aparelho não encontrado.")
@@ -421,15 +422,6 @@ func (h *handler) status(w http.ResponseWriter, r *http.Request) {
 		DroppedLogs uint64            `json:"dropped_logs"`
 		LAN         collectors.Status `json:"lan"`
 	}{h.Version, h.dnsStats(), h.Dropped(), h.LAN()})
-}
-
-func (h *handler) devices(w http.ResponseWriter, r *http.Request) {
-	devices, err := h.Store.DeviceCoverage(r.Context(), false)
-	if err != nil {
-		writeJSONError(w, http.StatusServiceUnavailable, "inventário indisponível")
-		return
-	}
-	writeJSON(w, devices)
 }
 
 func render(w http.ResponseWriter, status int, name string, data any) {
