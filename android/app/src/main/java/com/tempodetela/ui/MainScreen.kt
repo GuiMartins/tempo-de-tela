@@ -81,6 +81,7 @@ fun MainScreen(vm: AppViewModel) {
             onSaveRules = { rules, done -> vm.saveRules(detail.id, rules, done) },
             events = state.events,
             blockStatus = state.today.firstOrNull { it.personId == detail.id }?.block.orEmpty(),
+            blockedToday = state.today.firstOrNull { it.personId == detail.id }?.blockedToday ?: 0,
             onPause = { minutes -> vm.pause(detail, minutes) },
         )
         openPerson?.let { id -> PersonSheetHost(vm, state, id, onClose = { openPerson = null }, onDeleted = { detailPerson = null }) }

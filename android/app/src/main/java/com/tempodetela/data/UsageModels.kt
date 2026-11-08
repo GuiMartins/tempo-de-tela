@@ -72,6 +72,8 @@ data class PersonToday(
     val limits: List<LimitUse> = emptyList(),
     /** Bloqueio valendo agora ("Internet pausada até 21:30"); vazio se nenhum. */
     val block: String = "",
+    /** Acessos barrados hoje pelas regras (mostra que o bloqueio está pegando). */
+    @SerialName("blocked_today") val blockedToday: Int = 0,
 )
 
 @Serializable

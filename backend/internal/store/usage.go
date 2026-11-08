@@ -137,3 +137,14 @@ func (s *Store) SetCatalogRule(ctx context.Context, r CatalogRule, now time.Time
 func (s *Store) DeleteCatalogRule(ctx context.Context, domain string) error {
 	return expectRow(s.DB.ExecContext(ctx, `DELETE FROM catalog_rules WHERE domain = ?`, domain))
 }
+
+// PersonBlockedCount conta as consultas dos aparelhos da pessoa barradas por regra desde since.
+func (s *Store) PersonBlockedCount(ctx context.Context, personID int64, since time.Time) (int, error) {
+	var n int
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT count(*) FROM queries q
+		JOIN assignments a ON a.device_id = q.device_id AND a.person_id = ?
+			AND q.ts >= a.since AND (a.until IS NULL OR q.ts < a.until)
+		WHERE q.ts >= ? AND q.status = 3`, personID, since.Unix()).Scan(&n)
+	return n, err
+}

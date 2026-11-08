@@ -280,6 +280,8 @@ type personToday struct {
 	Limits []limitUse `json:"limits"`
 	// Block descreve o bloqueio valendo agora ("Internet pausada até 21:30"); vazio se nenhum.
 	Block string `json:"block"`
+	// BlockedToday: acessos (consultas) barrados hoje pelas regras, pra mostrar que o bloqueio pegou.
+	BlockedToday int `json:"blocked_today"`
 }
 
 type limitUse struct {
@@ -325,6 +327,10 @@ func (h *handler) usageToday(w http.ResponseWriter, r *http.Request) {
 		item.Limits = limitUses(rules, sum, cat)
 		if h.Policy != nil {
 			item.Block = h.Policy.Status(p.ID, time.Now())
+		}
+		if item.BlockedToday, err = h.Store.PersonBlockedCount(r.Context(), p.ID, from); err != nil {
+			writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+			return
 		}
 		out = append(out, item)
 	}

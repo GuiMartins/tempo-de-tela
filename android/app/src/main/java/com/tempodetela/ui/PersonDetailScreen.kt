@@ -75,6 +75,7 @@ fun PersonDetailScreen(
     onSaveRules: (PersonRules, () -> Unit) -> Unit = { _, _ -> },
     events: List<AlertEvent> = emptyList(),
     blockStatus: String = "",
+    blockedToday: Int = 0,
     onPause: (Int) -> Unit = {},
 ) {
     var choosingPause by remember { mutableStateOf(false) }
@@ -164,7 +165,7 @@ fun PersonDetailScreen(
                 ) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, "Próximo") }
             }
 
-            PauseCard(person, blockStatus, onPauseClick = { choosingPause = true }, onResume = { onPause(0) })
+            PauseCard(person, blockStatus, blockedToday, onPauseClick = { choosingPause = true }, onResume = { onPause(0) })
             error?.let { ErrorCard(it, false, { reload++ }, {}) }
             val s = summary
             if (s == null) {
@@ -297,7 +298,7 @@ private fun WeekContent(s: UsageSummary, end: LocalDate, onPickDay: (LocalDate) 
 }
 
 @Composable
-private fun PauseCard(person: Person, blockStatus: String, onPauseClick: () -> Unit, onResume: () -> Unit) {
+private fun PauseCard(person: Person, blockStatus: String, blockedToday: Int, onPauseClick: () -> Unit, onResume: () -> Unit) {
     val paused = person.isPaused()
     val c = MaterialTheme.colorScheme
     androidx.compose.material3.Surface(
@@ -317,9 +318,13 @@ private fun PauseCard(person: Person, blockStatus: String, onPauseClick: () -> U
                     style = MaterialTheme.typography.titleSmall,
                     color = if (blockStatus.isNotBlank()) c.onErrorContainer else c.onSurface,
                 )
-                if (blockStatus.isBlank()) {
-                    Text("Pause na hora quando precisar.", style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+                val detail = when {
+                    blockStatus.isNotBlank() && blockedToday > 0 -> "$blockedToday acessos barrados hoje. O que já estava aberto pode seguir por 1–2 min."
+                    blockStatus.isNotBlank() -> "O que já estava aberto pode seguir por 1–2 min, até o app abrir uma conexão nova."
+                    blockedToday > 0 -> "$blockedToday acessos barrados hoje."
+                    else -> "Pause na hora quando precisar."
                 }
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = if (blockStatus.isNotBlank()) c.onErrorContainer else c.onSurfaceVariant)
             }
             if (paused) {
                 androidx.compose.material3.Button(onClick = onResume) { Text("Liberar") }
@@ -349,7 +354,7 @@ private fun PauseDialog(name: String, onDismiss: () -> Unit, onPick: (Int) -> Un
         text = {
             Column {
                 Text(
-                    "Os aparelhos de $name ficam sem internet pelo Wi-Fi de casa (serviços do sistema continuam funcionando).",
+                    "Os aparelhos de $name ficam sem internet pelo Wi-Fi de casa (serviços do sistema continuam funcionando). Vale na hora para o que abrir depois; um vídeo que já está tocando pode continuar por 1–2 min.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp),
