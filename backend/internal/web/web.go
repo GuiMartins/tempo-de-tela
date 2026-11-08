@@ -19,6 +19,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/auth"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/notify"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/policy"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
@@ -52,6 +53,8 @@ type Deps struct {
 	Catalogs *usage.Catalogs
 	// Policy aplica os bloqueios no DNS; nil nos testes que não precisam.
 	Policy *policy.Engine
+	// Ntfy publica os alertas na hora; nil = desligado.
+	Ntfy *notify.Ntfy
 }
 
 // changed avisa o motor de bloqueio que pessoas, regras ou vínculos mudaram.
@@ -396,7 +399,9 @@ func (h *handler) status(w http.ResponseWriter, r *http.Request) {
 		DNS         dnsStats          `json:"dns"`
 		DroppedLogs uint64            `json:"dropped_logs"`
 		LAN         collectors.Status `json:"lan"`
-	}{h.Version, h.dnsStats(), h.Dropped(), h.LAN()})
+		// NtfyURL é o tópico do ntfy para assinar no celular; vazio = alertas só pelo app.
+		NtfyURL string `json:"ntfy_url"`
+	}{h.Version, h.dnsStats(), h.Dropped(), h.LAN(), h.Ntfy.SubscribeURL()})
 }
 
 func render(w http.ResponseWriter, status int, name string, data any) {

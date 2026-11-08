@@ -10,6 +10,7 @@ import com.tempodetela.data.PersonRules
 import com.tempodetela.data.AppUpdate
 import com.tempodetela.data.PersonToday
 import com.tempodetela.data.Unclassified
+import com.tempodetela.data.UsageAlert
 import com.tempodetela.data.UsageSummary
 import com.tempodetela.data.Device
 import com.tempodetela.data.Person
@@ -43,6 +44,7 @@ data class UiState(
     val unclassified: List<Unclassified> = emptyList(),
     val catalog: AppCatalog = AppCatalog(),
     val events: List<AlertEvent> = emptyList(),
+    val usageAlerts: List<UsageAlert> = emptyList(),
     val status: ServerStatus? = null,
     val loading: Boolean = false,
     val loaded: Boolean = false,
@@ -115,11 +117,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val unclassified = async { runCatching { api.unclassified() }.getOrDefault(emptyList()) }
         val catalog = async { runCatching { api.catalog() }.getOrDefault(AppCatalog()) }
         val events = async { runCatching { api.events(limit = 20) }.getOrDefault(emptyList()) }
+        val usageAlerts = async { runCatching { api.usageAlerts() }.getOrDefault(emptyList()) }
         _state.update {
             it.copy(
                 devices = devices.await(), persons = persons.await(), status = status.await(),
                 today = today.await(), unclassified = unclassified.await(), catalog = catalog.await(),
-                events = events.await().reversed(),
+                events = events.await().reversed(), usageAlerts = usageAlerts.await(),
                 loaded = true, error = null, unauthorized = false,
             )
         }
@@ -145,6 +148,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun deviceUsage(id: Long, date: LocalDate, days: Int): Result<UsageSummary> =
         runCatching { api.deviceUsage(id, date.toString(), days) }
+
+    /** Cria um aviso de uso; appId e category nulos = qualquer uso. */
+    fun createUsageAlert(appId: String?, category: String?, deviceId: Long?, personId: Long?) = mutate("Aviso criado") {
+        api.createUsageAlert(buildJsonObject {
+            appId?.let { put("app_id", it) }
+            category?.let { put("category", it) }
+            deviceId?.let { put("device_id", it) }
+            personId?.let { put("person_id", it) }
+        })
+    }
+
+    fun deleteUsageAlert(alert: UsageAlert) = mutate("Aviso apagado") {
+        val resp = api.deleteUsageAlert(alert.id)
+        if (!resp.isSuccessful) throw retrofit2.HttpException(resp)
+    }
 
     /** Classifica um site: em um app do catálogo ou num app novo. */
     fun classify(site: String, appId: String?, newAppName: String?, category: String?) = mutate("Classificado") {

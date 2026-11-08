@@ -107,3 +107,60 @@ func TestUsageAndCatalogAPI(t *testing.T) {
 		t.Fatalf("limites de hoje = %+v", limits)
 	}
 }
+
+func TestUsageAlertsAPI(t *testing.T) {
+	srv, st, _ := newServer(t)
+	c := newClient(t)
+	post(t, c, srv.URL+"/setup", url.Values{"password": {"senha-boa-123"}, "confirm": {"senha-boa-123"}})
+	page := body(t, post(t, c, srv.URL+"/pair", url.Values{"name": {"Teste"}}))
+	i := strings.Index(page, auth.TokenPrefix)
+	token := page[i : i+len(auth.TokenPrefix)+52]
+	ctx := context.Background()
+
+	st.RecordQuery(ctx, time.Now(), netip.MustParseAddr("192.168.1.40"), "netflix.com", 1, 0)
+	devices, _ := st.DeviceCoverage(ctx, store.AllDevices)
+	person, _ := st.CreatePerson(ctx, store.Person{Name: "Bia", Kind: "child", Monitoring: true}, time.Now())
+
+	bad := []map[string]any{
+		{"app_id": "netflix"}, // sem aparelho nem pessoa
+		{"app_id": "netflix", "device_id": devices[0].ID, "person_id": person.ID},
+		{"app_id": "netflix", "category": "video", "device_id": devices[0].ID},
+		{"app_id": "nao-existe", "device_id": devices[0].ID},
+		{"category": "system", "device_id": devices[0].ID},
+		{"app_id": "netflix", "device_id": 9999},
+		{"app_id": "netflix", "person_id": 9999},
+	}
+	for _, b := range bad {
+		if code := apiCall(t, srv.URL, token, "POST", "/api/v1/usage-alerts", b, nil); code != http.StatusBadRequest {
+			t.Errorf("%v deveria dar 400, deu %d", b, code)
+		}
+	}
+	var created store.UsageAlert
+	if code := apiCall(t, srv.URL, token, "POST", "/api/v1/usage-alerts", map[string]any{"app_id": "netflix", "device_id": devices[0].ID}, &created); code != http.StatusCreated {
+		t.Fatalf("criar aviso: %d", code)
+	}
+	if created.ID == 0 || created.AppID != "netflix" || created.DeviceID == nil || created.PersonID != nil || created.CreatedAt == 0 {
+		t.Fatalf("aviso criado = %+v", created)
+	}
+	if code := apiCall(t, srv.URL, token, "POST", "/api/v1/usage-alerts", map[string]any{"person_id": person.ID}, nil); code != http.StatusCreated {
+		t.Fatalf("qualquer uso da pessoa: %d", code)
+	}
+	var list []store.UsageAlert
+	apiCall(t, srv.URL, token, "GET", "/api/v1/usage-alerts", nil, &list)
+	if len(list) != 2 || list[1].AppID != "" || list[1].Category != "" || list[1].PersonID == nil {
+		t.Fatalf("lista = %+v", list)
+	}
+	id := strconv.FormatInt(created.ID, 10)
+	if code := apiCall(t, srv.URL, token, "DELETE", "/api/v1/usage-alerts/"+id, nil, nil); code != http.StatusNoContent {
+		t.Fatalf("apagar: %d", code)
+	}
+	if code := apiCall(t, srv.URL, token, "DELETE", "/api/v1/usage-alerts/"+id, nil, nil); code != http.StatusNotFound {
+		t.Fatalf("apagar de novo deveria dar 404: %d", code)
+	}
+	// Pessoa apagada leva os avisos junto.
+	apiCall(t, srv.URL, token, "DELETE", "/api/v1/persons/"+strconv.FormatInt(person.ID, 10), nil, nil)
+	apiCall(t, srv.URL, token, "GET", "/api/v1/usage-alerts", nil, &list)
+	if len(list) != 0 {
+		t.Fatalf("avisos da pessoa apagada ficaram: %+v", list)
+	}
+}

@@ -1,5 +1,9 @@
 package com.tempodetela.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tempodetela.BuildConfig
 import com.tempodetela.data.AppUpdate
@@ -136,6 +141,30 @@ fun ServerScreen(
             }
         }
 
+        state.status?.let { s ->
+            SectionHeader("Notificações")
+            val context = LocalContext.current
+            AppCard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(if (s.ntfyUrl.isNotBlank()) "Na hora, pelo app ntfy" else "Por este app", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (s.ntfyUrl.isNotBlank()) {
+                                "Os alertas chegam em 1 a 3 minutos. Fora de casa, mantenha a Tailscale ligada."
+                            } else {
+                                "Os alertas chegam com até ~20 min de atraso."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.onSurfaceVariant,
+                        )
+                    }
+                    if (s.ntfyUrl.isNotBlank()) {
+                        TextButton(onClick = { openNtfy(context, s.ntfyUrl) }) { Text("Assinar") }
+                    }
+                }
+            }
+        }
+
         SectionHeader("Catálogo de apps")
         AppCard(Modifier.fillMaxWidth(), onClick = onClassify) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -197,3 +226,17 @@ fun ServerScreen(
     }
 }
 
+
+/** Abre o app ntfy já na tela de assinar o tópico; sem o app, abre a página dele na loja. */
+private fun openNtfy(context: Context, topicUrl: String) {
+    val url = Uri.parse(topicUrl)
+    val link = Uri.parse("ntfy://${url.encodedAuthority}${url.encodedPath}?secure=${url.scheme == "https"}")
+    val candidates = listOf(link, Uri.parse("market://details?id=io.heckel.ntfy"), Uri.parse("https://play.google.com/store/apps/details?id=io.heckel.ntfy"))
+    for (uri in candidates) {
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        } catch (_: ActivityNotFoundException) {
+        }
+    }
+}

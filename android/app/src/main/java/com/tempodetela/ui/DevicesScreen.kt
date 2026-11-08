@@ -27,6 +27,8 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.NotificationAdd
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -247,6 +249,7 @@ fun DeviceSheet(
     onSave: (name: String, kind: String, personId: Long?) -> Unit,
     onHidden: (Boolean) -> Unit,
     loadUsage: (suspend () -> Result<UsageSummary>)? = null,
+    onUsageAlerts: (() -> Unit)? = null,
 ) {
     var usage by remember(device.id) { mutableStateOf<UsageSummary?>(null) }
     LaunchedEffect(device.id) { loadUsage?.invoke()?.onSuccess { usage = it } }
@@ -294,6 +297,13 @@ fun DeviceSheet(
                         val maxSec = u.apps.maxOfOrNull { it.sec } ?: 1
                         u.apps.take(3).forEach { AppUsageRow(it, maxSec) }
                     }
+                }
+            }
+
+            onUsageAlerts?.let { open ->
+                OutlinedButton(onClick = open, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.NotificationAdd, null, Modifier.size(18.dp))
+                    Text("Avisar quando usar…", Modifier.padding(start = 6.dp))
                 }
             }
 

@@ -53,6 +53,15 @@
     </label>
   </section>
 
+  <section class="card">
+    <div class="card-head"><h2>{{icon "alert"}} Notificações</h2>{{if .NtfyURL}}<span class="badge">{{icon "check"}}ntfy ligado</span>{{end}}</div>
+    {{if .NtfyURL}}
+    <p>Os alertas são publicados na hora no tópico <code>{{.NtfyURL}}</code>. Assine no app ntfy do celular (no app Tempo de Tela, aba Servidor, “Assinar no ntfy”).</p>
+    {{else}}
+    <p class="hint">Os alertas chegam pelo app Android, com até ~20 min de atraso. Para receber na hora, rode um ntfy e passe o endereço dele na variável <code>NTFY_URL</code> do container.</p>
+    {{end}}
+  </section>
+
   <div class="savebar"><button class="btn">{{icon "check"}}Salvar configurações</button></div>
 </form>
 <style>

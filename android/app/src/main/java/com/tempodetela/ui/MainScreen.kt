@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.NotificationAdd
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -59,6 +61,8 @@ fun MainScreen(vm: AppViewModel) {
     val snackbar = remember { SnackbarHostState() }
     var detailPerson by rememberSaveable { mutableStateOf<Long?>(null) }
     var classifying by rememberSaveable { mutableStateOf(false) }
+    // Avisos de uso: -1 = abertos sem aparelho escolhido; id = já com esse aparelho; null = fechados.
+    var usageAlertsFor by rememberSaveable { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
 
@@ -94,6 +98,11 @@ fun MainScreen(vm: AppViewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (current == Tab.Today) BrandLogo(32.dp)
                         Text(if (current == Tab.Today) "Tempo de Tela" else current.label)
+                    }
+                },
+                actions = {
+                    if (current == Tab.Today && state.loaded) {
+                        IconButton(onClick = { usageAlertsFor = -1 }) { Icon(Icons.Outlined.NotificationAdd, "Avisos de uso") }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -163,8 +172,26 @@ fun MainScreen(vm: AppViewModel) {
                 onSave = { name, kind, personId -> vm.saveDevice(device, name, kind, personId) },
                 onHidden = { vm.setHidden(device, it) },
                 loadUsage = { vm.deviceUsage(device.id, java.time.LocalDate.now(), 1) },
+                onUsageAlerts = {
+                    openDevice = null
+                    usageAlertsFor = device.id
+                },
             )
         }
+    }
+
+    usageAlertsFor?.let { target ->
+        UsageAlertsSheet(
+            alerts = state.usageAlerts,
+            devices = state.devices,
+            persons = state.persons,
+            catalog = state.catalog,
+            ntfyOn = !state.status?.ntfyUrl.isNullOrBlank(),
+            initialDeviceId = target.takeIf { it > 0 },
+            onDismiss = { usageAlertsFor = null },
+            onCreate = vm::createUsageAlert,
+            onDelete = vm::deleteUsageAlert,
+        )
     }
 
     openPerson?.let { id -> PersonSheetHost(vm, state, id, onClose = { openPerson = null }, onDeleted = {}) }

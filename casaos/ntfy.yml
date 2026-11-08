@@ -1,0 +1,65 @@
+# ntfy da casa: o Tempo de Tela publica os alertas aqui e o app ntfy do celular avisa na hora.
+# Instalar no zima: casaos-cli app-management install -f ntfy.yml -u 127.0.0.1
+# O tempo-de-tela aponta pra cá com NTFY_URL (casaos/docker-compose.yml); o tópico é gerado por ele.
+name: ntfy
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    environment:
+      TZ: America/Sao_Paulo
+      # Endereço pela Tailscale: funciona em casa e fora (com a Tailscale ligada no celular).
+      NTFY_BASE_URL: http://100.97.73.4:8996
+      # Celular desconectado recebe o que perdeu nas últimas 24 h quando voltar.
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+      NTFY_CACHE_DURATION: 24h
+      NTFY_ENABLE_SIGNUP: "false"
+      NTFY_ENABLE_LOGIN: "false"
+      NTFY_WEB_ROOT: disable
+    ports:
+      - "8996:80"
+    volumes:
+      - /DATA/AppData/ntfy/cache:/var/cache/ntfy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    x-casaos:
+      ports:
+        - container: "80"
+          description:
+            en_us: ntfy HTTP (publish and subscribe)
+            pt_br: ntfy HTTP (publicar e assinar)
+      volumes:
+        - container: /var/cache/ntfy
+          description:
+            en_us: Message cache (24 h)
+            pt_br: Cache das mensagens (24 h)
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: ntfy
+  author: GuiMartins
+  developer: binwiederhier
+  category: Utilities
+  description:
+    en_us: Push notifications for the Tempo de Tela alerts.
+    pt_br: Notificações na hora para os alertas do Tempo de Tela.
+  tagline:
+    en_us: Home push notifications
+    pt_br: Notificações da casa
+  title:
+    en_us: ntfy
+  icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ntfy.png
+  port_map: "8996"
+  scheme: http
+  index: /v1/health

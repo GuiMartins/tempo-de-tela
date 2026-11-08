@@ -43,6 +43,9 @@ class AlertsWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         prefs.edit().putLong("ultimo_id", events.maxOf { it.id }).apply()
         // Primeira vez: só marca até onde já viu, sem despejar o histórico em notificações.
         if (lastSeen < 0) return Result.success()
+        // Com ntfy, o servidor já entregou na hora: notificar aqui de novo seria em dobro.
+        val ntfy = runCatching { app.api.status().ntfyUrl }.getOrDefault("")
+        if (ntfy.isNotBlank()) return Result.success()
 
         val manager = NotificationManagerCompat.from(applicationContext)
         if (!manager.areNotificationsEnabled()) return Result.success()
@@ -81,7 +84,7 @@ class AlertsWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             if (manager.getNotificationChannel(CHANNEL) == null) {
                 manager.createNotificationChannel(
                     NotificationChannel(CHANNEL, "Alertas", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                        description = "Limite estourado, uso na hora de dormir ou na aula, app novo, aparelho novo na rede"
+                        description = "Avisos de uso, limite estourado, uso na hora de dormir ou na aula, app novo, aparelho novo na rede"
                     },
                 )
             }

@@ -67,6 +67,16 @@ interface Api {
     @GET("api/v1/events")
     suspend fun events(@Query("after") after: Long? = null, @Query("limit") limit: Int = 50): List<AlertEvent>
 
+    @GET("api/v1/usage-alerts")
+    suspend fun usageAlerts(): List<UsageAlert>
+
+    /** {"app_id"} ou {"category"} (nenhum = qualquer uso) e {"device_id"} ou {"person_id"}. */
+    @POST("api/v1/usage-alerts")
+    suspend fun createUsageAlert(@Body body: JsonObject): UsageAlert
+
+    @DELETE("api/v1/usage-alerts/{id}")
+    suspend fun deleteUsageAlert(@Path("id") id: Long): Response<Unit>
+
     @GET("api/v1/devices/{id}/usage")
     suspend fun deviceUsage(@Path("id") id: Long, @Query("date") date: String, @Query("days") days: Int): UsageSummary
 }

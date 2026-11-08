@@ -18,20 +18,29 @@ const (
 	newAppMinSec = 60
 )
 
-// Run avalia os alertas a cada 5 min até o contexto acabar.
+// Run avalia os avisos de uso a cada minuto (pra chegarem na hora) e os outros alertas a cada
+// 5 min, até o contexto acabar.
 func Run(ctx context.Context, st *store.Store, catalogs *usage.Catalogs) {
 	tick := time.NewTimer(30 * time.Second)
 	defer tick.Stop()
+	var lastFull time.Time
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
-			if err := Evaluate(ctx, st, catalogs, time.Now()); err != nil && ctx.Err() == nil {
+		}
+		now := time.Now()
+		if now.Sub(lastFull) >= 5*time.Minute {
+			lastFull = now
+			if err := Evaluate(ctx, st, catalogs, now); err != nil && ctx.Err() == nil {
 				slog.Warn("falha ao avaliar alertas", "erro", err)
 			}
-			tick.Reset(5 * time.Minute)
 		}
+		if err := EvaluateUsage(ctx, st, catalogs, now); err != nil && ctx.Err() == nil {
+			slog.Warn("falha ao avaliar avisos de uso", "erro", err)
+		}
+		tick.Reset(time.Minute)
 	}
 }
 

@@ -124,3 +124,14 @@ CREATE TABLE IF NOT EXISTS person_apps (
   first_seen INTEGER NOT NULL,
   PRIMARY KEY (person_id, app_id)
 );
+
+-- Avisos de uso: "avise quando <app | categoria | qualquer uso> for usado em <aparelho | pessoa>".
+-- app_id e category vazios = qualquer uso; exatamente um de device_id e person_id.
+CREATE TABLE IF NOT EXISTS usage_alerts (
+  id         INTEGER PRIMARY KEY,
+  app_id     TEXT NOT NULL DEFAULT '',
+  category   TEXT NOT NULL DEFAULT '',
+  device_id  INTEGER REFERENCES devices(id) ON DELETE CASCADE,
+  person_id  INTEGER REFERENCES persons(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL
+);

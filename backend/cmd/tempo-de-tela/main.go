@@ -20,6 +20,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/enrich"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/notify"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/policy"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/querylog"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
@@ -152,7 +153,14 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 	go func() { defer close(alertsDone); alerts.Run(enrichCtx, st, catalogs) }()
 	policyDone := make(chan struct{})
 	go func() { defer close(policyDone); blocks.Run(enrichCtx) }()
-	defer func() { stopEnrich(); <-enrichDone; <-alertsDone; <-policyDone }()
+	// ntfy com problema não pode derrubar o DNS da casa: sem ele, os alertas seguem pelo app.
+	ntfy, err := notify.New(ctx, st, os.Getenv("NTFY_URL"))
+	if err != nil {
+		slog.Warn("ntfy desligado", "erro", err)
+	}
+	ntfyDone := make(chan struct{})
+	go func() { defer close(ntfyDone); ntfy.Run(enrichCtx) }()
+	defer func() { stopEnrich(); <-enrichDone; <-alertsDone; <-policyDone; <-ntfyDone }()
 
 	lanCtx, stopLAN := context.WithCancel(ctx)
 	lan, lanDone := collectors.Start(lanCtx, st, cfg.Get, lanEnabled, lanInterface)
@@ -165,6 +173,7 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 			Started:  time.Now(),
 			Catalogs: catalogs,
 			Policy:   blocks,
+			Ntfy:     ntfy,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,

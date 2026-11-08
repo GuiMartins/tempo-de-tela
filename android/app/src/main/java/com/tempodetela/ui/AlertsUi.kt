@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.FiberNew
 import androidx.compose.material.icons.outlined.HourglassBottom
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ fun alertIcon(type: String): ImageVector = when (type) {
     "school" -> Icons.Outlined.School
     "new_app" -> Icons.Outlined.FiberNew
     "new_device" -> Icons.Outlined.Wifi
+    "usage" -> Icons.Outlined.Visibility
     else -> Icons.Outlined.NotificationsActive
 }
 

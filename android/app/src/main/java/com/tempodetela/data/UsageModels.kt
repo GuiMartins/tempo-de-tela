@@ -105,6 +105,17 @@ data class LimitUse(
     @SerialName("limit_sec") val limitSec: Long = 0,
 )
 
+/** Aviso de uso: app, categoria ou qualquer uso (os dois vazios), num aparelho ou de uma pessoa. */
+@Serializable
+data class UsageAlert(
+    val id: Long,
+    @SerialName("app_id") val appId: String = "",
+    val category: String = "",
+    @SerialName("device_id") val deviceId: Long? = null,
+    @SerialName("person_id") val personId: Long? = null,
+    @SerialName("created_at") val createdAt: Long = 0,
+)
+
 @Serializable
 data class AlertEvent(
     val id: Long,

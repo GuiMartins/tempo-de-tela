@@ -84,6 +84,8 @@ data class ServerStatus(
     val dns: DnsStatus = DnsStatus(),
     @SerialName("dropped_logs") val droppedLogs: Long = 0,
     val lan: LanStatus = LanStatus(),
+    /** Tópico do ntfy da casa; vazio = alertas só pelas notificações deste app. */
+    @SerialName("ntfy_url") val ntfyUrl: String = "",
 )
 
 @Serializable

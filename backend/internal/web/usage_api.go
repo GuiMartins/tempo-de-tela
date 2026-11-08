@@ -27,6 +27,87 @@ func (h *handler) usageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/persons/{id}/rules", h.api(h.getRules))
 	mux.HandleFunc("PUT /api/v1/persons/{id}/rules", h.api(h.putRules))
 	mux.HandleFunc("GET /api/v1/events", h.api(h.listEvents))
+	mux.HandleFunc("GET /api/v1/usage-alerts", h.api(h.listUsageAlerts))
+	mux.HandleFunc("POST /api/v1/usage-alerts", h.api(h.createUsageAlert))
+	mux.HandleFunc("DELETE /api/v1/usage-alerts/{id}", h.api(h.deleteUsageAlert))
+}
+
+func (h *handler) listUsageAlerts(w http.ResponseWriter, r *http.Request) {
+	list, err := h.Store.UsageAlerts(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	writeJSON(w, list)
+}
+
+// createUsageAlert recebe {"app_id"} ou {"category"} (nenhum dos dois = qualquer uso) e
+// {"device_id"} ou {"person_id"}.
+func (h *handler) createUsageAlert(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		AppID    string `json:"app_id"`
+		Category string `json:"category"`
+		DeviceID *int64 `json:"device_id"`
+		PersonID *int64 `json:"person_id"`
+	}
+	if !decode(w, r, &body) {
+		return
+	}
+	ctx := r.Context()
+	cat := h.Catalogs.Get()
+	switch {
+	case (body.DeviceID == nil) == (body.PersonID == nil):
+		writeJSONError(w, http.StatusBadRequest, "escolha um aparelho ou uma pessoa")
+		return
+	case body.AppID != "" && body.Category != "":
+		writeJSONError(w, http.StatusBadRequest, "escolha um app ou uma categoria, não os dois")
+		return
+	case body.AppID != "" && cat.App(body.AppID) == nil:
+		writeJSONError(w, http.StatusBadRequest, "app não encontrado no catálogo")
+		return
+	}
+	if body.Category != "" {
+		if c := cat.Category(body.Category); c == nil || c.Ignore {
+			writeJSONError(w, http.StatusBadRequest, "categoria inválida")
+			return
+		}
+	}
+	var err error
+	if body.DeviceID != nil {
+		_, err = h.Store.Device(ctx, *body.DeviceID)
+	} else {
+		_, err = h.Store.Person(ctx, *body.PersonID)
+	}
+	if errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusBadRequest, map[bool]string{true: "aparelho não encontrado", false: "pessoa não encontrada"}[body.DeviceID != nil])
+		return
+	} else if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	created, err := h.Store.CreateUsageAlert(ctx, store.UsageAlert{
+		AppID: body.AppID, Category: body.Category, DeviceID: body.DeviceID, PersonID: body.PersonID,
+	}, time.Now())
+	if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	writeJSONStatus(w, http.StatusCreated, created)
+}
+
+func (h *handler) deleteUsageAlert(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	if err := h.Store.DeleteUsageAlert(r.Context(), id); errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "aviso não encontrado")
+		return
+	} else if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *handler) getRules(w http.ResponseWriter, r *http.Request) {

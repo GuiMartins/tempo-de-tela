@@ -280,6 +280,7 @@ type settingsPage struct {
 	Settings      settings.Settings
 	UpstreamsText string
 	LAN           collectors.Status
+	NtfyURL       string
 }
 
 func (h *handler) settingsPage(w http.ResponseWriter, r *http.Request) {
@@ -287,6 +288,7 @@ func (h *handler) settingsPage(w http.ResponseWriter, r *http.Request) {
 	render(w, http.StatusOK, "settings.html", settingsPage{
 		base: h.base(r, "settings", "Configurações"), Settings: cfg,
 		UpstreamsText: strings.Join(cfg.Upstreams, "\n"), LAN: h.LAN(),
+		NtfyURL: h.Ntfy.SubscribeURL(),
 	})
 }
 
