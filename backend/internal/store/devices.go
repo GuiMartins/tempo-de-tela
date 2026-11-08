@@ -75,14 +75,14 @@ func scanDevice(row scanner) (DeviceCoverage, error) {
 	}
 	// Celular ou computador com app de casa inteligente (SmartThings, Xiaomi Home) consulta os
 	// mesmos domínios do eletrodoméstico: aí a assinatura descreve o app, não o aparelho.
+	// Fora isso, os domínios dizem o tipo melhor que o fabricante do chip (Espressif → "casa
+	// inteligente" vira impressora quando o aparelho conversa com bambulab.com).
 	switch d.KindGuess {
 	case inventory.KindPhone, inventory.KindTablet, inventory.KindComputer:
 		if dnsKind != "" && dnsKind != d.KindGuess {
 			d.DNSLabel, dnsKind = "", ""
 		}
-	}
-	// Pistas da rede (nome, DHCP) valem mais; os domínios completam o que faltar.
-	if d.KindGuess == "" || d.KindGuess == inventory.KindOther {
+	default:
 		d.KindGuess = firstNonEmpty(dnsKind, d.KindGuess)
 	}
 	if d.OSGuess == "" {

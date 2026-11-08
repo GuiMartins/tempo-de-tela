@@ -77,6 +77,10 @@ func addColumns(db *sql.DB) error {
 		{"devices", "dns_kind", "TEXT NOT NULL DEFAULT ''"},
 		{"devices", "dns_os", "TEXT NOT NULL DEFAULT ''"},
 	}
+	defer func() {
+		// Versões até 0.1.2 liam a opção 12 do ACK do roteador Xiaomi como hostname do cliente.
+		db.Exec(`UPDATE devices SET hostname = '' WHERE hostname LIKE 'MiWiFi-%-srv'`)
+	}()
 	for _, c := range columns {
 		var exists bool
 		if err := db.QueryRow(`SELECT EXISTS (SELECT 1 FROM pragma_table_info(?) WHERE name = ?)`, c.table, c.name).Scan(&exists); err != nil {

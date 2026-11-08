@@ -91,8 +91,10 @@ func dhcpObservation(p []byte, source net.HardwareAddr) (store.Observation, bool
 			o.IP = ciaddr
 		}
 	case msg[0] == 2 && from == 67 && to == 68 && messageType == 5:
-		// ACK confirma a concessão de yiaddr, inclusive antes do primeiro ARP.
+		// ACK confirma a concessão de yiaddr, inclusive antes do primeiro ARP. As opções do ACK
+		// são do servidor (o roteador Xiaomi manda o próprio nome na opção 12): não descrevem o cliente.
 		o.IP = netip.AddrFrom4([4]byte(msg[16:20]))
+		o.Hostname, o.Fingerprint, o.DHCPVendor = "", "", ""
 	default:
 		return store.Observation{}, false
 	}

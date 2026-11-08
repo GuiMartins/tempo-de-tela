@@ -151,9 +151,9 @@ func Label(c Clues) string {
 	if c.System {
 		return "Este servidor"
 	}
-	// O que o próprio aparelho informa (DHCP, mDNS) vem antes do nome guardado pelo roteador,
-	// que às vezes chega truncado.
-	for _, name := range []string{c.Hostname, c.MDNS, c.PTR} {
+	// O nome mDNS é o que o aparelho escolheu pra si; o hostname do DHCP às vezes chega
+	// truncado ("MacBookuilherme") e o nome guardado pelo roteador vem dele.
+	for _, name := range []string{c.MDNS, c.Hostname, c.PTR} {
 		if Useful(name) {
 			return Pretty(name)
 		}

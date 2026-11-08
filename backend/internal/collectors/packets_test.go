@@ -55,6 +55,10 @@ func TestDHCPRequestDoesNotClaimRequestedIP(t *testing.T) {
 	if !ok || got.IP != ip || got.MAC.String() != mac.String() {
 		t.Fatalf("DHCPACK = %+v, %t", got, ok)
 	}
+	// As opções do ACK (aqui a opção 12 do pacote reaproveitado) são do servidor.
+	if got.Hostname != "" || got.Fingerprint != "" {
+		t.Fatalf("ACK não pode trazer hostname/fingerprint do cliente: %+v", got)
+	}
 }
 
 func TestMDNSNameUsesOnlySourceAddress(t *testing.T) {
