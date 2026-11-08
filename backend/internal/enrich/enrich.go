@@ -58,6 +58,15 @@ func reverseNames(ctx context.Context, st *store.Store) {
 	gateway := defaultGateway()
 	client := &dns.Client{Timeout: 2 * time.Second}
 	for _, t := range targets {
+		// O roteador se chama por nomes internos ("XiaoQiang"): o gateway é "Roteador".
+		if gateway.IsValid() && t.IP == gateway {
+			if t.PTRName != "Roteador" {
+				if err := st.SetPTRName(ctx, t.ID, "Roteador"); err == nil {
+					st.SetSignature(ctx, t.ID, "", "router", "")
+				}
+			}
+			continue
+		}
 		var server string
 		switch {
 		case t.OnLAN && gateway.IsValid() && t.IP.Is4():

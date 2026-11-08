@@ -59,7 +59,9 @@ func TestLabel(t *testing.T) {
 		{Clues{Vendor: "Beijing Xiaomi Mobile Software Co., Ltd"}, "Aparelho Xiaomi"},
 		{Clues{Vendor: "LG Innotek", Kind: "tv"}, "TV LG"},
 		{Clues{Remote: true}, "Acesso remoto (Tailscale)"},
-		{Clues{Remote: true, PTR: "macbook-de-guilherme"}, "macbook de guilherme"},
+		{Clues{Remote: true, PTR: "macbook-de-guilherme"}, "Macbook de guilherme"},
+		{Clues{PTR: "MacBookuilherme", MDNS: "MacBook-de-Guilherme"}, "MacBook de Guilherme"},
+		{Clues{PTR: "ecoflow", Vendor: "Espressif Inc."}, "Ecoflow"},
 		{Clues{}, ""},
 	}
 	for _, c := range cases {

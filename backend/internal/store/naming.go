@@ -44,7 +44,8 @@ func (s *Store) SetPTRName(ctx context.Context, id int64, name string) error {
 func (s *Store) DomainCounts(ctx context.Context, since time.Time) (map[int64]map[string]int, error) {
 	rows, err := s.DB.QueryContext(ctx, `
 		SELECT q.device_id, d.name, count(*) FROM queries q JOIN domains d ON d.id = q.domain_id
-		WHERE q.ts >= ? AND q.status = 0 GROUP BY q.device_id, q.domain_id`, since.Unix())
+		WHERE q.ts >= ? AND q.status = 0 AND q.device_id NOT IN (SELECT id FROM devices WHERE key = ?)
+		GROUP BY q.device_id, q.domain_id`, since.Unix(), SelfKey)
 	if err != nil {
 		return nil, err
 	}

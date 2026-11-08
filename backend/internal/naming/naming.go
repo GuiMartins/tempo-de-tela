@@ -58,14 +58,20 @@ func CleanPTR(name string) string {
 	return name
 }
 
-// Pretty troca separadores por espaço: "MacBook-de-Guilherme" → "MacBook de Guilherme".
+// Pretty troca separadores por espaço e põe inicial maiúscula em nomes todos em minúsculo:
+// "MacBook-de-Guilherme" → "MacBook de Guilherme", "ecoflow" → "Ecoflow".
 func Pretty(name string) string {
 	name = strings.TrimSpace(name)
-	if strings.ContainsAny(name, " ") {
-		return name
+	if !strings.ContainsAny(name, " ") {
+		r := strings.NewReplacer("-", " ", "_", " ")
+		name = strings.Join(strings.Fields(r.Replace(name)), " ")
 	}
-	r := strings.NewReplacer("-", " ", "_", " ")
-	return strings.Join(strings.Fields(r.Replace(name)), " ")
+	if name != "" && name == strings.ToLower(name) {
+		runes := []rune(name)
+		runes[0] = unicode.ToUpper(runes[0])
+		name = string(runes)
+	}
+	return name
 }
 
 var knownVendors = []struct{ match, short string }{
@@ -145,7 +151,9 @@ func Label(c Clues) string {
 	if c.System {
 		return "Este servidor"
 	}
-	for _, name := range []string{c.Hostname, c.PTR, c.MDNS} {
+	// O que o próprio aparelho informa (DHCP, mDNS) vem antes do nome guardado pelo roteador,
+	// que às vezes chega truncado.
+	for _, name := range []string{c.Hostname, c.MDNS, c.PTR} {
 		if Useful(name) {
 			return Pretty(name)
 		}

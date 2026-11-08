@@ -73,6 +73,14 @@ func scanDevice(row scanner) (DeviceCoverage, error) {
 	if person.Valid {
 		d.PersonID = &person.Int64
 	}
+	// Celular ou computador com app de casa inteligente (SmartThings, Xiaomi Home) consulta os
+	// mesmos domínios do eletrodoméstico: aí a assinatura descreve o app, não o aparelho.
+	switch d.KindGuess {
+	case inventory.KindPhone, inventory.KindTablet, inventory.KindComputer:
+		if dnsKind != "" && dnsKind != d.KindGuess {
+			d.DNSLabel, dnsKind = "", ""
+		}
+	}
 	// Pistas da rede (nome, DHCP) valem mais; os domínios completam o que faltar.
 	if d.KindGuess == "" || d.KindGuess == inventory.KindOther {
 		d.KindGuess = firstNonEmpty(dnsKind, d.KindGuess)
@@ -82,7 +90,7 @@ func scanDevice(row scanner) (DeviceCoverage, error) {
 	}
 	d.System = key == SelfKey
 	if d.System {
-		d.KindGuess = inventory.KindServer
+		d.KindGuess, d.OSGuess, d.DNSLabel = inventory.KindServer, "", ""
 	}
 	if ip, err := netip.ParseAddr(d.IPv4); err == nil && d.MAC == "" && tailscaleRange.Contains(ip) {
 		d.Remote = true
