@@ -27,7 +27,13 @@ const (
 	StatusOK      uint8 = 0
 	StatusBlocked uint8 = 1
 	StatusFailed  uint8 = 2
+	// StatusPolicy: bloqueada por regra da pessoa (pausa, hora de dormir, categoria, limite).
+	StatusPolicy uint8 = 3
 )
+
+// Policy decide se a consulta de um aparelho deve ser bloqueada. Precisa ser rápida: roda em
+// toda consulta, antes do cache.
+type Policy func(client netip.Addr, name string) bool
 
 type LogEntry struct {
 	TS     time.Time
@@ -38,11 +44,13 @@ type LogEntry struct {
 }
 
 type Stats struct {
-	Queries   atomic.Uint64
-	Blocked   atomic.Uint64
-	CacheHits atomic.Uint64
-	Failures  atomic.Uint64
-	lastErr   atomic.Pointer[string]
+	Queries atomic.Uint64
+	Blocked atomic.Uint64
+	// PolicyBlocked conta as consultas barradas pelas regras das pessoas.
+	PolicyBlocked atomic.Uint64
+	CacheHits     atomic.Uint64
+	Failures      atomic.Uint64
+	lastErr       atomic.Pointer[string]
 }
 
 func (s *Stats) LastError() string {
@@ -62,6 +70,16 @@ type Server struct {
 
 	mu      sync.Mutex
 	servers []*dns.Server
+	policy  atomic.Pointer[Policy]
+}
+
+// SetPolicy liga o bloqueio por regra (nil desliga).
+func (s *Server) SetPolicy(p Policy) {
+	if p == nil {
+		s.policy.Store(nil)
+		return
+	}
+	s.policy.Store(&p)
 }
 
 // New cria o servidor. cfg é lido a cada consulta (configuração muda sem reiniciar);
@@ -142,6 +160,10 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	q := r.Question[0]
 	name := strings.ToLower(strings.TrimSuffix(q.Name, "."))
 	status := StatusOK
+	var client netip.Addr
+	if ap, err := netip.ParseAddrPort(w.RemoteAddr().String()); err == nil {
+		client = ap.Addr().Unmap()
+	}
 
 	var resp *dns.Msg
 	if cfg.BlockBypass && IsBypassDomain(name) {
@@ -150,6 +172,12 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		resp.RecursionAvailable = true
 		status = StatusBlocked
 		s.Stats.Blocked.Add(1)
+	} else if p := s.policy.Load(); p != nil && client.IsValid() && (*p)(client, name) {
+		resp = new(dns.Msg)
+		resp.SetRcode(r, dns.RcodeNameError)
+		resp.RecursionAvailable = true
+		status = StatusPolicy
+		s.Stats.PolicyBlocked.Add(1)
 	} else {
 		var err error
 		resp, err = s.resolve(r, cfg)
@@ -177,10 +205,6 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(resp)
 
 	if loggedTypes[q.Qtype] {
-		var client netip.Addr
-		if ap, err := netip.ParseAddrPort(w.RemoteAddr().String()); err == nil {
-			client = ap.Addr().Unmap()
-		}
 		s.log(LogEntry{TS: time.Now(), Client: client, Name: name, QType: q.Qtype, Status: status})
 	}
 }

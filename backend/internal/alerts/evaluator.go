@@ -126,7 +126,7 @@ func Evaluate(ctx context.Context, st *store.Store, catalogs *usage.Catalogs, no
 		}
 
 		if rules.School != nil && containsDay(rules.School.Days, isoWeekday(day)) {
-			w := Window{rules.School.Start, rules.School.End}.windows(day)[0]
+			w := Window{Start: rules.School.Start, End: rules.School.End}.windows(day)[0]
 			notStudy := func(s usage.SessionView) bool { return s.Category != "study" }
 			if s, ok := firstOverlap(sum.Sessions, w, notStudy); ok {
 				if err := emit("school", fmt.Sprintf("school:%d:%s", p.ID, date),

@@ -95,6 +95,12 @@ também vale.
 - `GET|PUT /api/v1/persons/{id}/rules`: `{"limits": {"games": 120, "total": 240}, "bedtime":
   {"start": "22:00", "end": "06:00"}, "school": {"days": [1,2,3,4,5], "start": "07:00",
   "end": "12:30"}}` (minutos por dia; dias 1 = segunda).
+- `POST /api/v1/persons/{id}/pause`: `{"minutes": 60}` pausa a internet da pessoa por 1 h; `-1`
+  sem prazo; `0` libera.
+- Regras com bloqueio: `"block_on_limit": true` (categoria que passou do limite fica bloqueada até
+  o fim do dia; o limite total bloqueia tudo), `"block_categories": ["games"]` (sempre),
+  `"bedtime": {…, "block": true}` e `"school": {…, "block": true}` (vídeo, jogos, redes, música e
+  compras). O bloqueio é no DNS (responde "não existe"); serviços do sistema continuam liberados.
 - `GET /api/v1/events?after=ID`: alertas novos (limite estourado, uso na hora de dormir ou na
   aula, app usado pela primeira vez, aparelho novo na rede), avaliados a cada 5 min. O app
   Android consulta a cada 15 min e mostra como notificação, sem Firebase.

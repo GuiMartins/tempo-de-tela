@@ -39,7 +39,7 @@ func TestEvaluate(t *testing.T) {
 	if err := st.AssignDevice(ctx, devices[0].ID, &p.ID, day.AddDate(0, 0, -2)); err != nil {
 		t.Fatal(err)
 	}
-	rules := Rules{Limits: map[string]int{"games": 30, TotalLimit: 600}, Bedtime: &Window{"22:00", "06:00"},
+	rules := Rules{Limits: map[string]int{"games": 30, TotalLimit: 600}, Bedtime: &Window{Start: "22:00", End: "06:00"},
 		School: &School{Days: []int{1, 2, 3, 4, 5}, Start: "07:00", End: "12:00"}}
 	if err := rules.Validate(catalogs.Get()); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestRulesValidate(t *testing.T) {
 	bad := []Rules{
 		{Limits: map[string]int{"inexistente": 10}},
 		{Limits: map[string]int{"system": 10}},
-		{Bedtime: &Window{"25:00", "06:00"}},
+		{Bedtime: &Window{Start: "25:00", End: "06:00"}},
 		{School: &School{Days: []int{1}, Start: "12:00", End: "07:00"}},
 		{School: &School{Days: []int{9}, Start: "07:00", End: "12:00"}},
 	}

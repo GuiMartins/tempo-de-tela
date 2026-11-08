@@ -20,6 +20,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/enrich"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/policy"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/querylog"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
@@ -129,6 +130,11 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 
 	log := querylog.New()
 	dns := dnsserver.New(cfg.Get, log.Enqueue)
+	blocks := policy.New(st, catalogs)
+	if err := blocks.Refresh(ctx, time.Now()); err != nil {
+		return err
+	}
+	dns.SetPolicy(blocks.Blocked)
 	if err := dns.Listen(dnsAddr); err != nil {
 		return err
 	}
@@ -144,7 +150,9 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 	enrichDone, alertsDone := make(chan struct{}), make(chan struct{})
 	go func() { defer close(enrichDone); enrich.Run(enrichCtx, st) }()
 	go func() { defer close(alertsDone); alerts.Run(enrichCtx, st, catalogs) }()
-	defer func() { stopEnrich(); <-enrichDone; <-alertsDone }()
+	policyDone := make(chan struct{})
+	go func() { defer close(policyDone); blocks.Run(enrichCtx) }()
+	defer func() { stopEnrich(); <-enrichDone; <-alertsDone; <-policyDone }()
 
 	lanCtx, stopLAN := context.WithCancel(ctx)
 	lan, lanDone := collectors.Start(lanCtx, st, cfg.Get, lanEnabled, lanInterface)
@@ -156,6 +164,7 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 			HTTPPort: strconv.Itoa(listener.Addr().(*net.TCPAddr).Port),
 			Started:  time.Now(),
 			Catalogs: catalogs,
+			Policy:   blocks,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,

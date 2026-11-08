@@ -76,6 +76,7 @@ func addColumns(db *sql.DB) error {
 		{"devices", "dns_label", "TEXT NOT NULL DEFAULT ''"},
 		{"devices", "dns_kind", "TEXT NOT NULL DEFAULT ''"},
 		{"devices", "dns_os", "TEXT NOT NULL DEFAULT ''"},
+		{"persons", "paused_until", "INTEGER NOT NULL DEFAULT 0"},
 		{"events", "key", "TEXT NOT NULL DEFAULT ''"},
 		{"events", "title", "TEXT NOT NULL DEFAULT ''"},
 		{"events", "message", "TEXT NOT NULL DEFAULT ''"},

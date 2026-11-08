@@ -67,6 +67,7 @@ func (h *handler) putRules(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
 		return
 	}
+	h.changed()
 	writeJSON(w, rules)
 }
 
@@ -265,6 +266,8 @@ type personToday struct {
 	NowApp string `json:"now_app"`
 	// Limits: uso de hoje das categorias com limite (e "total"), para as barras de progresso.
 	Limits []limitUse `json:"limits"`
+	// Block descreve o bloqueio valendo agora ("Internet pausada até 21:30"); vazio se nenhum.
+	Block string `json:"block"`
 }
 
 type limitUse struct {
@@ -308,6 +311,9 @@ func (h *handler) usageToday(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		item.Limits = limitUses(rules, sum, cat)
+		if h.Policy != nil {
+			item.Block = h.Policy.Status(p.ID, time.Now())
+		}
 		out = append(out, item)
 	}
 	writeJSON(w, out)

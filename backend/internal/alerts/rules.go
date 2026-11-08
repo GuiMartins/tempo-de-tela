@@ -16,6 +16,8 @@ import (
 type Window struct {
 	Start string `json:"start"`
 	End   string `json:"end"`
+	// Block: além de avisar, bloqueia a internet da pessoa nesse horário.
+	Block bool `json:"block"`
 }
 
 // School é o horário de aula nos dias da semana (1 = segunda … 7 = domingo).
@@ -23,6 +25,8 @@ type School struct {
 	Days  []int  `json:"days"`
 	Start string `json:"start"`
 	End   string `json:"end"`
+	// Block: bloqueia vídeo, jogos, redes sociais, música e compras no horário de aula.
+	Block bool `json:"block"`
 }
 
 // Rules são as regras de uma pessoa. Limits: minutos por dia por categoria, ou "total".
@@ -30,6 +34,11 @@ type Rules struct {
 	Limits  map[string]int `json:"limits"`
 	Bedtime *Window        `json:"bedtime"`
 	School  *School        `json:"school"`
+	// BlockOnLimit: categoria que passou do limite fica bloqueada até o fim do dia
+	// (o limite total bloqueia tudo).
+	BlockOnLimit bool `json:"block_on_limit"`
+	// BlockCategories: categorias sempre bloqueadas para a pessoa.
+	BlockCategories []string `json:"block_categories"`
 }
 
 const TotalLimit = "total"
@@ -51,6 +60,15 @@ func (r *Rules) Validate(cat *catalog.Catalog) error {
 			return fmt.Errorf("limite de %s maior que 24 h", c)
 		}
 	}
+	clean := r.BlockCategories[:0]
+	for _, c := range r.BlockCategories {
+		category := cat.Category(c)
+		if category == nil || category.Ignore {
+			return fmt.Errorf("categoria inválida para bloquear: %q", c)
+		}
+		clean = append(clean, c)
+	}
+	r.BlockCategories = clean
 	if r.Bedtime != nil {
 		if _, err := clockMinutes(r.Bedtime.Start); err != nil {
 			return err
@@ -110,6 +128,25 @@ func Save(ctx context.Context, st *store.Store, personID int64, r Rules) error {
 }
 
 // windows devolve os trechos de [dia 00:00, dia+1 00:00) cobertos pela janela, com um rótulo.
+// Contains diz se o horário (no fuso do t) cai na janela.
+func (w Window) Contains(t time.Time) bool {
+	s, err1 := clockMinutes(w.Start)
+	e, err2 := clockMinutes(w.End)
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	m := t.Hour()*60 + t.Minute()
+	if s < e {
+		return m >= s && m < e
+	}
+	return m >= s || m < e
+}
+
+// Contains diz se t está no horário de aula (dia da semana e hora).
+func (s School) Contains(t time.Time) bool {
+	return containsDay(s.Days, isoWeekday(t)) && Window{Start: s.Start, End: s.End}.Contains(t)
+}
+
 func (w Window) windows(day time.Time) []span {
 	s, _ := clockMinutes(w.Start)
 	e, _ := clockMinutes(w.End)

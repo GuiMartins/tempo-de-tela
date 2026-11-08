@@ -91,6 +91,7 @@
       <div class="row"><span class="row-label">{{.Name}}</span><span class="status {{.State}}"><span class="dot"></span>{{.Status}}</span></div>
       {{end}}
       {{if .DNS.Queries}}<div class="row"><span class="row-label">Respondidas do cache</span><span class="row-value">{{.CacheRate}}% de {{num .DNS.Queries}}{{with .Uptime}} ({{.}}){{end}}</span></div>{{end}}
+      {{if .DNS.PolicyBlocked}}<div class="row"><span class="row-label">Barradas por regra</span><span class="row-value">{{num .DNS.PolicyBlocked}}{{with .Uptime}} ({{.}}){{end}}</span></div>{{end}}
       {{if .DNS.Failures}}<div class="row"><span class="row-label">Falhas no upstream</span><span class="row-value">{{num .DNS.Failures}}</span></div>{{end}}
       <div class="row"><span class="row-label">Pessoas · apps pareados</span><span class="row-value">{{.Persons}} · <a href="/pairing">{{.Paired}}</a></span></div>
     </div>

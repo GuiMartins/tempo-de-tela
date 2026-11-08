@@ -34,6 +34,42 @@ func (h *handler) apiRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/persons/{id}", h.api(h.getPerson))
 	mux.HandleFunc("PATCH /api/v1/persons/{id}", h.api(h.patchPerson))
 	mux.HandleFunc("DELETE /api/v1/persons/{id}", h.api(h.deletePerson))
+	mux.HandleFunc("POST /api/v1/persons/{id}/pause", h.api(h.pausePerson))
+}
+
+// pausePerson: {"minutes": 60} pausa a internet por 1 h; -1 pausa sem prazo; 0 libera.
+func (h *handler) pausePerson(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		Minutes int `json:"minutes"`
+	}
+	if !decode(w, r, &body) {
+		return
+	}
+	var until int64
+	switch {
+	case body.Minutes < -1 || body.Minutes > 7*24*60:
+		writeJSONError(w, http.StatusBadRequest, "duração inválida")
+		return
+	case body.Minutes == -1:
+		until = -1
+	case body.Minutes > 0:
+		until = time.Now().Add(time.Duration(body.Minutes) * time.Minute).Unix()
+	}
+	err := h.Store.SetPausedUntil(r.Context(), id, until)
+	if errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "pessoa não encontrada")
+		return
+	}
+	if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	h.changed()
+	h.writePerson(w, r, id, http.StatusOK)
 }
 
 // listDevices: ?filter=all inclui os ocultos; ?filter=hidden lista só os ocultos.
@@ -132,6 +168,7 @@ func (h *handler) assignDevice(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
 		return
 	}
+	h.changed()
 	h.writeDevice(w, r, id, http.StatusOK)
 }
 
@@ -260,6 +297,7 @@ func (h *handler) deletePerson(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
 		return
 	}
+	h.changed()
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/auth"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/policy"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/usage"
@@ -49,6 +50,15 @@ type Deps struct {
 	Started time.Time
 	// Catalogs é o catálogo domínio → app → categoria (embutido + regras do usuário).
 	Catalogs *usage.Catalogs
+	// Policy aplica os bloqueios no DNS; nil nos testes que não precisam.
+	Policy *policy.Engine
+}
+
+// changed avisa o motor de bloqueio que pessoas, regras ou vínculos mudaram.
+func (h *handler) changed() {
+	if h.Policy != nil {
+		h.Policy.Changed()
+	}
 }
 
 type handler struct{ Deps }
@@ -230,15 +240,17 @@ type dnsStats struct {
 	Queries   uint64 `json:"queries"`
 	CacheHits uint64 `json:"cache_hits"`
 	Blocked   uint64 `json:"blocked"`
-	Failures  uint64 `json:"failures"`
-	LastError string `json:"last_error"`
+	// PolicyBlocked: consultas barradas pelas regras das pessoas (pausa, hora de dormir…).
+	PolicyBlocked uint64 `json:"policy_blocked"`
+	Failures      uint64 `json:"failures"`
+	LastError     string `json:"last_error"`
 }
 
 func (h *handler) dnsStats() dnsStats {
 	s := &h.DNS.Stats
 	return dnsStats{
 		Addr: h.DNS.LocalAddr().String(), Queries: s.Queries.Load(), CacheHits: s.CacheHits.Load(),
-		Blocked: s.Blocked.Load(), Failures: s.Failures.Load(), LastError: s.LastError(),
+		Blocked: s.Blocked.Load(), PolicyBlocked: s.PolicyBlocked.Load(), Failures: s.Failures.Load(), LastError: s.LastError(),
 	}
 }
 
