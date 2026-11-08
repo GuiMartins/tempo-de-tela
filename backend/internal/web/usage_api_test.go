@@ -80,9 +80,30 @@ func TestUsageAndCatalogAPI(t *testing.T) {
 	if len(week.Daily) != 7 || len(week.Heatmap) != 7 {
 		t.Fatalf("semana do aparelho = %+v", week)
 	}
+	pid := strconv.FormatInt(person.ID, 10)
+	var rules map[string]any
+	if code := apiCall(t, srv.URL, token, "PUT", "/api/v1/persons/"+pid+"/rules",
+		map[string]any{"limits": map[string]int{"video": 10, "total": 120}, "bedtime": map[string]string{"start": "22:00", "end": "06:00"}}, &rules); code != http.StatusOK {
+		t.Fatalf("salvar regras: %d", code)
+	}
+	if code := apiCall(t, srv.URL, token, "PUT", "/api/v1/persons/"+pid+"/rules", map[string]any{"limits": map[string]int{"nada": 10}}, nil); code != http.StatusBadRequest {
+		t.Fatalf("regra inválida deveria dar 400, deu %d", code)
+	}
+	apiCall(t, srv.URL, token, "GET", "/api/v1/persons/"+pid+"/rules", nil, &rules)
+	if rules["bedtime"] == nil || rules["limits"].(map[string]any)["video"].(float64) != 10 {
+		t.Fatalf("regras = %+v", rules)
+	}
+	var events []map[string]any
+	if code := apiCall(t, srv.URL, token, "GET", "/api/v1/events?after=0", nil, &events); code != http.StatusOK || events == nil {
+		t.Fatalf("alertas: %d %v", code, events)
+	}
 	var todayList []map[string]any
 	apiCall(t, srv.URL, token, "GET", "/api/v1/usage/today?date="+date, nil, &todayList)
 	if len(todayList) != 1 || todayList[0]["total_sec"].(float64) < 21*60 {
 		t.Fatalf("hoje = %+v", todayList)
+	}
+	limits := todayList[0]["limits"].([]any)
+	if len(limits) != 2 || limits[0].(map[string]any)["category"] != "total" {
+		t.Fatalf("limites de hoje = %+v", limits)
 	}
 }

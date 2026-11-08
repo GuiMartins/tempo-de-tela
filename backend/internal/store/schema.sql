@@ -109,3 +109,18 @@ CREATE TABLE IF NOT EXISTS catalog_rules (
   app_id     TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+
+-- Regras por pessoa (limites, hora de dormir, aula), em JSON.
+CREATE TABLE IF NOT EXISTS person_rules (
+  person_id  INTEGER PRIMARY KEY REFERENCES persons(id) ON DELETE CASCADE,
+  rules      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Apps que já apareceram para cada pessoa (alerta de "primeira vez").
+CREATE TABLE IF NOT EXISTS person_apps (
+  person_id  INTEGER NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+  app_id     TEXT NOT NULL,
+  first_seen INTEGER NOT NULL,
+  PRIMARY KEY (person_id, app_id)
+);

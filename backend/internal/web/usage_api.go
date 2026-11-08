@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/alerts"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/catalog"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/usage"
@@ -23,6 +24,66 @@ func (h *handler) usageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/usage/today", h.api(h.usageToday))
 	mux.HandleFunc("GET /api/v1/persons/{id}/usage", h.api(h.personUsage))
 	mux.HandleFunc("GET /api/v1/devices/{id}/usage", h.api(h.deviceUsage))
+	mux.HandleFunc("GET /api/v1/persons/{id}/rules", h.api(h.getRules))
+	mux.HandleFunc("PUT /api/v1/persons/{id}/rules", h.api(h.putRules))
+	mux.HandleFunc("GET /api/v1/events", h.api(h.listEvents))
+}
+
+func (h *handler) getRules(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	if _, err := h.Store.Person(r.Context(), id); errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "pessoa não encontrada")
+		return
+	}
+	rules, err := alerts.Load(r.Context(), h.Store, id)
+	if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	writeJSON(w, rules)
+}
+
+func (h *handler) putRules(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	if _, err := h.Store.Person(r.Context(), id); errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "pessoa não encontrada")
+		return
+	}
+	var rules alerts.Rules
+	if !decode(w, r, &rules) {
+		return
+	}
+	if err := rules.Validate(h.Catalogs.Get()); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := alerts.Save(r.Context(), h.Store, id, rules); err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	writeJSON(w, rules)
+}
+
+// listEvents: ?after=ID devolve os alertas novos (para as notificações); sem after, os 50 mais recentes.
+func (h *handler) listEvents(w http.ResponseWriter, r *http.Request) {
+	after := int64(-1)
+	if v := r.URL.Query().Get("after"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 {
+			after = n
+		}
+	}
+	events, err := h.Store.Events(r.Context(), after, intParam(r, "limit", 50, 1, 200))
+	if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+		return
+	}
+	writeJSON(w, events)
 }
 
 func (h *handler) getCatalog(w http.ResponseWriter, r *http.Request) {
@@ -156,13 +217,21 @@ func (h *handler) personUsage(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "data inválida (use AAAA-MM-DD)")
 		return
 	}
-	hits, err := h.Store.PersonHits(r.Context(), id, from, from.AddDate(0, 0, days))
+	// Lê também o período anterior, para comparar ("esta semana vs a passada").
+	hits, err := h.Store.PersonHits(r.Context(), id, from.AddDate(0, 0, -days), from.AddDate(0, 0, days))
 	if err != nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
 		return
 	}
+	writeJSON(w, h.summaryWithPrevious(hits, from, days))
+}
+
+func (h *handler) summaryWithPrevious(hits []store.Hit, from time.Time, days int) usage.Summary {
 	cat := h.Catalogs.Get()
-	writeJSON(w, usage.Summarize(usage.Sessionize(hits, cat), cat, from, days))
+	sessions := usage.Sessionize(hits, cat)
+	sum := usage.Summarize(sessions, cat, from, days)
+	sum.PreviousTotalSec = usage.Summarize(sessions, cat, from.AddDate(0, 0, -days), days).TotalSec
+	return sum
 }
 
 func (h *handler) deviceUsage(w http.ResponseWriter, r *http.Request) {
@@ -179,13 +248,12 @@ func (h *handler) deviceUsage(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "data inválida (use AAAA-MM-DD)")
 		return
 	}
-	hits, err := h.Store.DeviceHits(r.Context(), id, from, from.AddDate(0, 0, days))
+	hits, err := h.Store.DeviceHits(r.Context(), id, from.AddDate(0, 0, -days), from.AddDate(0, 0, days))
 	if err != nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
 		return
 	}
-	cat := h.Catalogs.Get()
-	writeJSON(w, usage.Summarize(usage.Sessionize(hits, cat), cat, from, days))
+	writeJSON(w, h.summaryWithPrevious(hits, from, days))
 }
 
 type personToday struct {
@@ -193,6 +261,17 @@ type personToday struct {
 	TotalSec     int64            `json:"total_sec"`
 	LastActivity int64            `json:"last_activity"`
 	TopApps      []usage.AppUsage `json:"top_apps"`
+	// NowApp é o app em uso agora (sessão que terminou há menos de 1 min além da folga).
+	NowApp string `json:"now_app"`
+	// Limits: uso de hoje das categorias com limite (e "total"), para as barras de progresso.
+	Limits []limitUse `json:"limits"`
+}
+
+type limitUse struct {
+	Category string `json:"category"`
+	Label    string `json:"label"`
+	UsedSec  int64  `json:"used_sec"`
+	LimitSec int64  `json:"limit_sec"`
 }
 
 // usageToday: tempo de tela de hoje de cada pessoa, com os 3 apps mais usados.
@@ -216,7 +295,20 @@ func (h *handler) usageToday(w http.ResponseWriter, r *http.Request) {
 		if len(top) > 3 {
 			top = top[:3]
 		}
-		out = append(out, personToday{p.ID, sum.TotalSec, sum.LastActivity, top})
+		item := personToday{PersonID: p.ID, TotalSec: sum.TotalSec, LastActivity: sum.LastActivity, TopApps: top, Limits: []limitUse{}}
+		cutoff := time.Now().Add(-90 * time.Second).Unix()
+		for _, s := range sum.Sessions {
+			if s.End >= cutoff {
+				item.NowApp = s.AppName
+			}
+		}
+		rules, err := alerts.Load(r.Context(), h.Store, p.ID)
+		if err != nil {
+			writeJSONError(w, http.StatusServiceUnavailable, "banco de dados indisponível")
+			return
+		}
+		item.Limits = limitUses(rules, sum, cat)
+		out = append(out, item)
 	}
 	writeJSON(w, out)
 }
@@ -227,4 +319,25 @@ func intParam(r *http.Request, name string, def, lo, hi int) int {
 		return def
 	}
 	return min(max(n, lo), hi)
+}
+
+func limitUses(rules alerts.Rules, sum usage.Summary, cat *catalog.Catalog) []limitUse {
+	out := []limitUse{}
+	if m, ok := rules.Limits[alerts.TotalLimit]; ok {
+		out = append(out, limitUse{alerts.TotalLimit, "Total", sum.TotalSec, int64(m) * 60})
+	}
+	for _, c := range cat.Categories {
+		m, ok := rules.Limits[c.ID]
+		if !ok {
+			continue
+		}
+		var used int64
+		for _, u := range sum.Categories {
+			if u.ID == c.ID {
+				used = u.Sec
+			}
+		}
+		out = append(out, limitUse{c.ID, c.Label, used, int64(m) * 60})
+	}
+	return out
 }

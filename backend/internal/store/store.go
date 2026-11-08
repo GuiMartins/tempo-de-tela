@@ -76,6 +76,9 @@ func addColumns(db *sql.DB) error {
 		{"devices", "dns_label", "TEXT NOT NULL DEFAULT ''"},
 		{"devices", "dns_kind", "TEXT NOT NULL DEFAULT ''"},
 		{"devices", "dns_os", "TEXT NOT NULL DEFAULT ''"},
+		{"events", "key", "TEXT NOT NULL DEFAULT ''"},
+		{"events", "title", "TEXT NOT NULL DEFAULT ''"},
+		{"events", "message", "TEXT NOT NULL DEFAULT ''"},
 	}
 	defer func() {
 		// Versões até 0.1.2 liam a opção 12 do ACK do roteador Xiaomi como hostname do cliente.
@@ -91,6 +94,10 @@ func addColumns(db *sql.DB) error {
 				return err
 			}
 		}
+	}
+	// Um alerta por chave (ex.: "limite:3:2026-11-08:games"): o avaliador pode rodar de novo à vontade.
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_events_key ON events(key) WHERE key <> ''`); err != nil {
+		return err
 	}
 	return nil
 }

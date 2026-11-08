@@ -153,6 +153,8 @@ type Summary struct {
 	Heatmap       [][]int         `json:"heatmap,omitempty"`
 	Sessions      []SessionView   `json:"sessions,omitempty"`
 	Estimated     bool            `json:"estimated"`
+	// PreviousTotalSec é o total do período anterior de mesmo tamanho (ontem, semana passada).
+	PreviousTotalSec int64 `json:"previous_total_sec"`
 }
 
 type interval struct{ start, end int64 }

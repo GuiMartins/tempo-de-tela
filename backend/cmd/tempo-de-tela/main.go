@@ -15,6 +15,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/alerts"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/auth"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
@@ -140,9 +141,10 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 	}()
 
 	enrichCtx, stopEnrich := context.WithCancel(ctx)
-	enrichDone := make(chan struct{})
+	enrichDone, alertsDone := make(chan struct{}), make(chan struct{})
 	go func() { defer close(enrichDone); enrich.Run(enrichCtx, st) }()
-	defer func() { stopEnrich(); <-enrichDone }()
+	go func() { defer close(alertsDone); alerts.Run(enrichCtx, st, catalogs) }()
+	defer func() { stopEnrich(); <-enrichDone; <-alertsDone }()
 
 	lanCtx, stopLAN := context.WithCancel(ctx)
 	lan, lanDone := collectors.Start(lanCtx, st, cfg.Get, lanEnabled, lanInterface)
