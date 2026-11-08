@@ -4,7 +4,7 @@ Nome: **`tempo-de-tela`**.
 
 ## Status (08/11/2026)
 
-**Fases 1, 3 e 4 no ar.** Backend no zima como DNS da casa (no lugar do pihole), com coletores
+**Fases 1, 3, 4 e 5 no ar.** Backend no zima como DNS da casa (no lugar do pihole), com coletores
 ARP/DHCP/mDNS, nomes automáticos dos aparelhos (DHCP, DNS reverso do roteador e da Tailscale,
 mDNS, assinatura pelos domínios), painel web com senha e API. App Android (Releases no GitHub,
 atualiza sozinho) com pareamento por QR, pessoas, aparelhos e vínculos.
@@ -14,9 +14,13 @@ classificação dos sites desconhecidos pelo app (regras e apps do usuário no b
 estimadas por aparelho e app e, no app, a aba Hoje (tempo de cada pessoa e top apps) e a tela da
 pessoa (dia: total, categorias, linha do tempo, apps; semana: barras por dia, mapa de calor).
 
+Fase 5: regras por pessoa (limite diário por categoria e total, hora de dormir, horário de
+aula), alertas avaliados no servidor a cada 5 min (limite, hora de dormir, aula, app novo,
+aparelho novo) e notificações no app pelo WorkManager; aba Hoje com limites e "agora: app";
+tela da pessoa com comparação com o dia/semana anterior e as regras.
+
 **Faltam:** fase 2 (tirar o `8.8.8.8` do DHCP do roteador e resolver o DNS IPv6: hoje parte das
-consultas escapa), fase 5 (insights, limites, notificações) e fase 6 (pausar, hora de dormir,
-bloqueio). Descoberta por SSDP/NetBIOS ficou de fora (os nomes já vêm de outras fontes).
+consultas escapa) e fase 6 (pausar internet, hora de dormir e bloqueio por categoria no DNS). Descoberta por SSDP/NetBIOS ficou de fora (os nomes já vêm de outras fontes).
 Limitação conhecida: apps de computador que consultam o servidor o tempo todo em segundo plano
 (ChatGPT, Claude, WhatsApp Desktop) aparecem com mais tempo do que o uso real.
 

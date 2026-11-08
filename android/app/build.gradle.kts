@@ -92,6 +92,10 @@ dependencies {
     // O token de pareamento é credencial: fica em EncryptedSharedPreferences.
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Alertas: consulta periódica e notificação local, sem Firebase. Pinado na 2.9.1: a 2.10
+    // exige compileSdk 35 + AGP 8.6.
+    implementation("androidx.work:work-runtime:2.9.1")
+
     // Leitura do QR code de pareamento.
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 

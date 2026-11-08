@@ -90,7 +90,14 @@ também vale.
   "category"}}`; `DELETE /api/v1/catalog/rules/{domain}`.
 - `GET /api/v1/persons/{id}/usage?date=AAAA-MM-DD&days=1|7` (e `/devices/{id}/usage`): tempo
   de tela estimado, por categoria, por app, por dia, sessões do dia e mapa de calor da semana.
-- `GET /api/v1/usage/today`: tempo de hoje de cada pessoa, com os 3 apps mais usados.
+- `GET /api/v1/usage/today`: tempo de hoje de cada pessoa, os 3 apps mais usados, o app em uso
+  agora e o progresso dos limites.
+- `GET|PUT /api/v1/persons/{id}/rules`: `{"limits": {"games": 120, "total": 240}, "bedtime":
+  {"start": "22:00", "end": "06:00"}, "school": {"days": [1,2,3,4,5], "start": "07:00",
+  "end": "12:30"}}` (minutos por dia; dias 1 = segunda).
+- `GET /api/v1/events?after=ID`: alertas novos (limite estourado, uso na hora de dormir ou na
+  aula, app usado pela primeira vez, aparelho novo na rede), avaliados a cada 5 min. O app
+  Android consulta a cada 15 min e mostra como notificação, sem Firebase.
 - `GET /healthz`: sem autenticação, para o healthcheck.
 
 O tempo de tela é estimado pelas consultas DNS: consultas do mesmo app no mesmo aparelho formam

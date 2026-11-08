@@ -53,6 +53,16 @@ interface Api {
     @GET("api/v1/persons/{id}/usage")
     suspend fun personUsage(@Path("id") id: Long, @Query("date") date: String, @Query("days") days: Int): UsageSummary
 
+    @GET("api/v1/persons/{id}/rules")
+    suspend fun rules(@Path("id") id: Long): PersonRules
+
+    @PUT("api/v1/persons/{id}/rules")
+    suspend fun saveRules(@Path("id") id: Long, @Body rules: PersonRules): PersonRules
+
+    /** after = último id já visto (notificações); sem after, os mais recentes. */
+    @GET("api/v1/events")
+    suspend fun events(@Query("after") after: Long? = null, @Query("limit") limit: Int = 50): List<AlertEvent>
+
     @GET("api/v1/devices/{id}/usage")
     suspend fun deviceUsage(@Path("id") id: Long, @Query("date") date: String, @Query("days") days: Int): UsageSummary
 }

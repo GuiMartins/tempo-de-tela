@@ -1,6 +1,7 @@
 package com.tempodetela
 
 import android.app.Application
+import com.tempodetela.alerts.AlertsWorker
 import com.tempodetela.data.Api
 import com.tempodetela.data.ServerStore
 import com.tempodetela.data.buildApi
@@ -26,5 +27,6 @@ class TempoApp : Application() {
         api = buildApi(config = { serverStore.config.value }, onWorking = serverStore::setPreferred)
         updater = Updater(this)
         scope.launch { updater.check() }
+        AlertsWorker.schedule(this)
     }
 }

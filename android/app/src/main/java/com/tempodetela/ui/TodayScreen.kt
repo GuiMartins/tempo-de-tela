@@ -77,6 +77,9 @@ fun TodayScreen(
             items(ordered, key = { it.id }) { person ->
                 PersonTodayCard(person, todayBy[person.id], state, now) { onOpenPerson(person) }
             }
+            if (state.events.isNotEmpty()) {
+                item(key = "alerts") { AlertsCard(state.events) }
+            }
             if (state.unclassified.isNotEmpty()) {
                 item {
                     AppCard(Modifier.fillMaxWidth(), onClick = onClassify) {
@@ -133,9 +136,14 @@ private fun PersonTodayCard(person: Person, today: PersonToday?, state: UiState,
                 Text(formatDuration(today?.totalSec ?: 0), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 when {
                     !person.monitoring -> StatusBadge("pausado", Tone.Warn)
+                    !today?.nowApp.isNullOrBlank() -> StatusBadge("agora: ${today?.nowApp}", Tone.Ok, dot = true)
                     online -> StatusBadge("online", Tone.Ok, dot = true)
                 }
             }
+        }
+        val limits = today?.limits.orEmpty()
+        if (limits.isNotEmpty()) {
+            Column(Modifier.padding(top = 12.dp)) { limits.forEach { LimitBar(it) } }
         }
         val apps = today?.topApps.orEmpty()
         if (apps.isNotEmpty()) {

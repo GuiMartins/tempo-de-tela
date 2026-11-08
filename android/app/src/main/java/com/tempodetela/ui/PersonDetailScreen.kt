@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,7 +51,11 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tempodetela.data.AlertEvent
+import com.tempodetela.data.AppCatalog
+import com.tempodetela.data.LimitUse
 import com.tempodetela.data.Person
+import com.tempodetela.data.PersonRules
 import com.tempodetela.data.UsageSummary
 import com.tempodetela.data.userMessage
 import java.time.LocalDate
@@ -63,7 +68,15 @@ fun PersonDetailScreen(
     load: suspend (LocalDate, Int) -> Result<UsageSummary>,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    loadRules: suspend () -> Result<PersonRules> = { Result.success(PersonRules()) },
+    catalog: AppCatalog = AppCatalog(),
+    onSaveRules: (PersonRules, () -> Unit) -> Unit = { _, _ -> },
+    events: List<AlertEvent> = emptyList(),
 ) {
+    var rules by remember { mutableStateOf<PersonRules?>(null) }
+    var editingRules by remember { mutableStateOf(false) }
+    var rulesVersion by remember { mutableIntStateOf(0) }
+    LaunchedEffect(person.id, rulesVersion) { loadRules().onSuccess { rules = it } }
     BackHandler(onBack = onBack)
     var week by rememberSaveable { mutableStateOf(false) }
     var dateText by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
@@ -79,6 +92,12 @@ fun PersonDetailScreen(
             .onFailure { error = it.userMessage() }
     }
 
+    if (editingRules) {
+        RulesSheet(person.name, rules ?: PersonRules(), catalog, onDismiss = { editingRules = false }) { new ->
+            onSaveRules(new) { rulesVersion++ }
+            editingRules = false
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -89,7 +108,10 @@ fun PersonDetailScreen(
                         Text(person.name)
                     }
                 },
-                actions = { IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, "Editar") } },
+                actions = {
+                    IconButton(onClick = { editingRules = true }) { Icon(Icons.Outlined.Tune, "Regras") }
+                    IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, "Editar") }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -141,8 +163,10 @@ fun PersonDetailScreen(
                     week = false
                 }
             } else {
-                DayContent(s, date)
+                DayContent(s, date, rules, catalog)
             }
+            val mine = events.filter { it.personId == person.id }
+            if (mine.isNotEmpty()) AlertsCard(mine)
             Text(
                 "Estimado pelas consultas DNS. Uso fora do Wi-Fi de casa não aparece.",
                 style = MaterialTheme.typography.bodySmall,
@@ -154,12 +178,25 @@ fun PersonDetailScreen(
 }
 
 @Composable
-private fun TotalHeader(total: Long, subtitle: String) {
+private fun TotalHeader(total: Long, subtitle: String, previous: Long = 0, previousLabel: String = "") {
     AppCard(Modifier.fillMaxWidth(), padding = 20.dp) {
         Text("Tempo de tela", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(formatDuration(total), fontSize = 36.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 2.dp))
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(formatDuration(total), fontSize = 36.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 2.dp))
+            comparison(total, previous)?.let { (text, more) ->
+                Box(Modifier.padding(bottom = 8.dp)) { StatusBadge("$text $previousLabel", if (more) Tone.Warn else Tone.Ok) }
+            }
+        }
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+/** "+25%"/"−10%" em relação ao período anterior; null sem base pra comparar. */
+private fun comparison(total: Long, previous: Long): Pair<String, Boolean>? {
+    if (previous < 10 * 60 || total == 0L) return null
+    val pct = ((total - previous) * 100 / previous).toInt()
+    if (pct == 0) return "igual" to false
+    return (if (pct > 0) "+$pct%" else "−${-pct}%") to (pct > 0)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -198,11 +235,22 @@ private fun AppsCard(s: UsageSummary, title: String) {
 }
 
 @Composable
-private fun DayContent(s: UsageSummary, date: LocalDate) {
+private fun DayContent(s: UsageSummary, date: LocalDate, rules: PersonRules?, catalog: AppCatalog) {
     TotalHeader(
         s.totalSec,
         if (s.totalSec > 0) "Das ${clock(s.firstActivity)} às ${clock(s.lastActivity)}" else "Sem uso registrado",
+        s.previousTotalSec, "que no dia anterior",
     )
+    val limits = rules?.limits.orEmpty()
+    if (limits.isNotEmpty()) {
+        AppCard(Modifier.fillMaxWidth()) {
+            Text("Limites do dia", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 6.dp))
+            limits["total"]?.let { LimitBar(LimitUse("total", "Total", s.totalSec, it * 60L)) }
+            catalog.categories.filter { it.id in limits }.forEach { c ->
+                LimitBar(LimitUse(c.id, c.label, s.categories.firstOrNull { it.id == c.id }?.sec ?: 0, limits.getValue(c.id) * 60L))
+            }
+        }
+    }
     CategoryStack(s)
     if (s.sessions.isNotEmpty()) {
         AppCard(Modifier.fillMaxWidth()) {
@@ -216,7 +264,7 @@ private fun DayContent(s: UsageSummary, date: LocalDate) {
 @Composable
 private fun WeekContent(s: UsageSummary, end: LocalDate, onPickDay: (LocalDate) -> Unit) {
     val activeDays = s.daily.count { it.sec > 0 }.coerceAtLeast(1)
-    TotalHeader(s.totalSec, "Média de ${formatDuration(s.totalSec / activeDays)} por dia com uso")
+    TotalHeader(s.totalSec, "Média de ${formatDuration(s.totalSec / activeDays)} por dia com uso", s.previousTotalSec, "que na semana anterior")
     AppCard(Modifier.fillMaxWidth()) {
         Text("Por dia", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 12.dp))
         DayBars(s.daily, end, onPickDay)

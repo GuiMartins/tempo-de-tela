@@ -76,6 +76,10 @@ fun MainScreen(vm: AppViewModel) {
             load = { date, days -> vm.personUsage(detail.id, date, days) },
             onBack = { detailPerson = null },
             onEdit = { openPerson = detail.id },
+            loadRules = { vm.rules(detail.id) },
+            catalog = state.catalog,
+            onSaveRules = { rules, done -> vm.saveRules(detail.id, rules, done) },
+            events = state.events,
         )
         openPerson?.let { id -> PersonSheetHost(vm, state, id, onClose = { openPerson = null }, onDeleted = { detailPerson = null }) }
         return

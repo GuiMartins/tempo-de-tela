@@ -59,6 +59,7 @@ data class UsageSummary(
     val heatmap: List<List<Int>> = emptyList(),
     val sessions: List<SessionView> = emptyList(),
     val estimated: Boolean = true,
+    @SerialName("previous_total_sec") val previousTotalSec: Long = 0,
 )
 
 @Serializable
@@ -67,4 +68,39 @@ data class PersonToday(
     @SerialName("total_sec") val totalSec: Long = 0,
     @SerialName("last_activity") val lastActivity: Long = 0,
     @SerialName("top_apps") val topApps: List<AppUsage> = emptyList(),
+    @SerialName("now_app") val nowApp: String = "",
+    val limits: List<LimitUse> = emptyList(),
+)
+
+@Serializable
+data class TimeWindow(val start: String = "22:00", val end: String = "06:00")
+
+@Serializable
+data class SchoolHours(val days: List<Int> = listOf(1, 2, 3, 4, 5), val start: String = "07:00", val end: String = "12:30")
+
+/** Regras da pessoa: limites em minutos por categoria (ou "total"), hora de dormir, aula. */
+@Serializable
+data class PersonRules(
+    val limits: Map<String, Int> = emptyMap(),
+    val bedtime: TimeWindow? = null,
+    val school: SchoolHours? = null,
+)
+
+@Serializable
+data class LimitUse(
+    val category: String,
+    val label: String,
+    @SerialName("used_sec") val usedSec: Long = 0,
+    @SerialName("limit_sec") val limitSec: Long = 0,
+)
+
+@Serializable
+data class AlertEvent(
+    val id: Long,
+    val ts: Long,
+    val type: String,
+    @SerialName("person_id") val personId: Long? = null,
+    @SerialName("device_id") val deviceId: Long? = null,
+    val title: String,
+    val message: String = "",
 )

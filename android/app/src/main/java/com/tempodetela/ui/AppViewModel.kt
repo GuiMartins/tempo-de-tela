@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tempodetela.TempoApp
+import com.tempodetela.data.AlertEvent
 import com.tempodetela.data.AppCatalog
+import com.tempodetela.data.PersonRules
 import com.tempodetela.data.AppUpdate
 import com.tempodetela.data.PersonToday
 import com.tempodetela.data.Unclassified
@@ -40,6 +42,7 @@ data class UiState(
     val today: List<PersonToday> = emptyList(),
     val unclassified: List<Unclassified> = emptyList(),
     val catalog: AppCatalog = AppCatalog(),
+    val events: List<AlertEvent> = emptyList(),
     val status: ServerStatus? = null,
     val loading: Boolean = false,
     val loaded: Boolean = false,
@@ -111,10 +114,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val today = async { runCatching { api.usageToday() }.getOrDefault(emptyList()) }
         val unclassified = async { runCatching { api.unclassified() }.getOrDefault(emptyList()) }
         val catalog = async { runCatching { api.catalog() }.getOrDefault(AppCatalog()) }
+        val events = async { runCatching { api.events(limit = 20) }.getOrDefault(emptyList()) }
         _state.update {
             it.copy(
                 devices = devices.await(), persons = persons.await(), status = status.await(),
                 today = today.await(), unclassified = unclassified.await(), catalog = catalog.await(),
+                events = events.await().reversed(),
                 loaded = true, error = null, unauthorized = false,
             )
         }
@@ -122,6 +127,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun personUsage(id: Long, date: LocalDate, days: Int): Result<UsageSummary> =
         runCatching { api.personUsage(id, date.toString(), days) }
+
+    suspend fun rules(personId: Long): Result<PersonRules> = runCatching { api.rules(personId) }
+
+    fun saveRules(personId: Long, rules: PersonRules, onSaved: () -> Unit = {}) = mutate("Regras salvas") {
+        api.saveRules(personId, rules)
+        onSaved()
+    }
 
     suspend fun deviceUsage(id: Long, date: LocalDate, days: Int): Result<UsageSummary> =
         runCatching { api.deviceUsage(id, date.toString(), days) }

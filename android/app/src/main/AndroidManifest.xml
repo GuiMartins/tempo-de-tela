@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Alertas (limite, hora de dormir, aparelho novo); pedida em tempo de execução no Android 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- O app se atualiza pelas releases do GitHub (Updater); a pessoa libera uma vez. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
