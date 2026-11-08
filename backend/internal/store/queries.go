@@ -23,7 +23,13 @@ func (s *Store) RecordQuery(ctx context.Context, seen time.Time, client netip.Ad
 	}
 	defer tx.Rollback()
 
-	deviceID, err := deviceAt(ctx, tx, ip, seen.UnixNano())
+	key := "ip:" + ip
+	var deviceID int64
+	if s.selfIP(client) {
+		key, err = SelfKey, sql.ErrNoRows
+	} else {
+		deviceID, err = deviceAt(ctx, tx, ip, seen.UnixNano())
+	}
 	switch err {
 	case nil:
 		_, err = tx.ExecContext(ctx, `UPDATE devices SET last_seen = max(last_seen, ?), last_dns = max(last_dns, ?) WHERE id = ?`,
@@ -36,7 +42,7 @@ func (s *Store) RecordQuery(ctx context.Context, seen time.Time, client netip.Ad
 			first_seen = min(first_seen, excluded.first_seen),
 			last_seen = max(last_seen, excluded.last_seen),
 			last_dns = max(last_dns, excluded.last_dns)
-		RETURNING id`, "ip:"+ip, ipv4, ipv6, ts, ts, ts).Scan(&deviceID)
+		RETURNING id`, key, ipv4, ipv6, ts, ts, ts).Scan(&deviceID)
 	}
 	if err != nil {
 		return err

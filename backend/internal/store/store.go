@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"net/netip"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -17,6 +19,24 @@ var schema string
 
 type Store struct {
 	DB *sql.DB
+	// isSelf diz se o IP é deste servidor (loopback, IPs do host, containers Docker).
+	isSelf atomic.Pointer[func(netip.Addr) bool]
+}
+
+// SelfKey é a chave do aparelho que representa este servidor e seus containers.
+const SelfKey = "self"
+
+// SetSelfMatcher define quais IPs são deste servidor; as consultas deles vão para um registro só.
+func (s *Store) SetSelfMatcher(match func(netip.Addr) bool) { s.isSelf.Store(&match) }
+
+func (s *Store) selfIP(ip netip.Addr) bool {
+	if ip.IsLoopback() {
+		return true
+	}
+	if m := s.isSelf.Load(); m != nil {
+		return (*m)(ip)
+	}
+	return false
 }
 
 func Open(dataDir string) (*Store, error) {
@@ -42,7 +62,33 @@ func open(dsn string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("migração: %w", err)
 	}
+	if err := addColumns(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migração: %w", err)
+	}
 	return &Store{DB: db}, nil
+}
+
+// addColumns acrescenta as colunas criadas depois da primeira versão (bancos antigos).
+func addColumns(db *sql.DB) error {
+	columns := []struct{ table, name, ddl string }{
+		{"devices", "ptr_name", "TEXT NOT NULL DEFAULT ''"},
+		{"devices", "dns_label", "TEXT NOT NULL DEFAULT ''"},
+		{"devices", "dns_kind", "TEXT NOT NULL DEFAULT ''"},
+		{"devices", "dns_os", "TEXT NOT NULL DEFAULT ''"},
+	}
+	for _, c := range columns {
+		var exists bool
+		if err := db.QueryRow(`SELECT EXISTS (SELECT 1 FROM pragma_table_info(?) WHERE name = ?)`, c.table, c.name).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			if _, err := db.Exec(`ALTER TABLE ` + c.table + ` ADD COLUMN ` + c.name + ` ` + c.ddl); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Store) Close() error { return s.DB.Close() }

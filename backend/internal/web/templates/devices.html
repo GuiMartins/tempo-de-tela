@@ -12,13 +12,14 @@
     <button type="button" data-f="all" class="on">Todos <b>{{.All}}</b></button>
     <button type="button" data-f="online">Online <b>{{.Online}}</b></button>
     <button type="button" data-f="nodns">Fora do DNS <b>{{.NoDNS}}</b></button>
+    {{if .Infra}}<button type="button" data-f="infra">Servidor e remoto <b>{{.Infra}}</b></button>{{end}}
     {{if .NumHidden}}<button type="button" data-f="hidden">Ocultos <b>{{.NumHidden}}</b></button>{{end}}
   </div>
 </div>
 
 <div class="card list" id="list">
   {{range .Devices}}
-  <article class="dev" data-s="{{.Search}}" data-online="{{.Online}}" data-dns="{{.UsesDNS}}" data-hidden="{{.Hidden}}"{{if .Hidden}} hidden{{end}}>
+  <article class="dev{{if or .System .Remote}} infra{{end}}" data-s="{{.Search}}" data-online="{{.Online}}" data-dns="{{.UsesDNS}}" data-hidden="{{.Hidden}}" data-infra="{{or .System .Remote}}"{{if .Hidden}} hidden{{end}}>
     <div class="dev-ico{{if .Online}} live{{end}}" title="{{or .KindLabel "Tipo desconhecido"}}">{{icon .Icon}}</div>
     <div class="dev-main">
       <div class="dev-name">
@@ -36,7 +37,8 @@
     <div class="dev-owner">{{with .Owner}}<span class="owner">{{if .Emoji}}{{.Emoji}} {{end}}{{.Name}}</span>{{else}}<span class="faint">sem dono</span>{{end}}</div>
     <div class="dev-status">
       {{if .Online}}<span class="badge ok"{{if .UsesDNS}} title="Última consulta DNS: {{.LastQuery}}"{{end}}><span class="dot"></span>online</span>{{else}}<span class="badge" title="Visto na rede{{if .UsesDNS}} · última consulta DNS: {{.LastQuery}}{{end}}">{{icon "clock"}}{{.Seen}}</span>{{end}}
-      {{if not .UsesDNS}}<span class="badge warn" title="Está na rede mas nunca consultou este DNS">{{icon "alert"}}fora do DNS</span>{{end}}
+      {{if .System}}<span class="badge">{{icon "server"}}este servidor</span>{{else if .Remote}}<span class="badge">{{icon "globe"}}Tailscale</span>{{end}}
+      {{if and (not .UsesDNS) (not .System) (not .Remote)}}<span class="badge warn" title="Está na rede mas nunca consultou este DNS">{{icon "alert"}}fora do DNS</span>{{end}}
     </div>
     <form class="dev-act" method="post" action="/devices/{{.ID}}">
       {{if .Hidden}}<button class="icon-btn" name="action" value="show" title="Mostrar de novo">{{icon "eye"}}</button>
@@ -102,8 +104,10 @@
     let shown = 0;
     for (const r of rows) {
       const d = r.dataset;
+      const infra = d.infra === 'true';
       const pass = filter === 'hidden' ? d.hidden === 'true'
-        : d.hidden !== 'true' && (filter === 'all' || (filter === 'online' && d.online === 'true') || (filter === 'nodns' && d.dns === 'false'));
+        : filter === 'infra' ? infra && d.hidden !== 'true'
+        : d.hidden !== 'true' && !infra && (filter === 'all' || (filter === 'online' && d.online === 'true') || (filter === 'nodns' && d.dns === 'false'));
       const show = pass && (!term || d.s.includes(term));
       r.hidden = !show;
       if (show) shown++;

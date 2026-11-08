@@ -57,9 +57,17 @@ IPv4. ARP e DHCP passivo precisam de `CAP_NET_RAW`. A interface vem da rota IPv4
 ou pode ser selecionada com `-lan-interface`. Em redes maiores que /24, a varredura ativa
 fica no /24 do servidor. O painel exibe o estado de cada coletor.
 
+Cada aparelho ganha um nome automático com o que a rede já sabe, nesta ordem: hostname do
+DHCP, DNS reverso do roteador (hostname da concessão) ou do MagicDNS da Tailscale, nome mDNS,
+o que os domínios consultados dizem (`bambulab.com` → impressora Bambu Lab, `lgthinq.com` →
+eletrodoméstico LG) e, por fim, tipo + fabricante. Nomes que não dizem nada (MAC, UUID,
+`Android_XXXX`) são ignorados. As consultas do próprio servidor e dos containers Docker vão para
+um registro só ("Este servidor").
+
 As consultas de um IP com associação recente entram no histórico do MAC confirmado.
-Consultas anteriores à confirmação, de IPs sem associação ou via IPv6 ficam no histórico
-por IP.
+O IP continua do último MAC por até 24 h depois de a varredura deixar de vê-lo (celular
+dormindo não responde ARP), enquanto outro MAC não assumir o IP. Consultas que chegaram antes
+da confirmação são juntadas ao aparelho de hora em hora.
 
 ## API
 

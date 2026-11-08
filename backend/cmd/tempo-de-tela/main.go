@@ -18,6 +18,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/auth"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/enrich"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/querylog"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
@@ -111,6 +112,8 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 	if err != nil {
 		return err
 	}
+	// Consultas do próprio servidor e dos containers Docker viram um aparelho só.
+	st.SetSelfMatcher(enrich.SelfMatcher())
 
 	listener, err := net.Listen("tcp", webAddr)
 	if err != nil {
@@ -130,6 +133,11 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 		defer close(logDone)
 		log.Run(logCtx, st, func() int { return cfg.Get().RetentionDays })
 	}()
+
+	enrichCtx, stopEnrich := context.WithCancel(ctx)
+	enrichDone := make(chan struct{})
+	go func() { defer close(enrichDone); enrich.Run(enrichCtx, st) }()
+	defer func() { stopEnrich(); <-enrichDone }()
 
 	lanCtx, stopLAN := context.WithCancel(ctx)
 	lan, lanDone := collectors.Start(lanCtx, st, cfg.Get, lanEnabled, lanInterface)

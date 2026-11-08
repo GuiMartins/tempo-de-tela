@@ -13,6 +13,7 @@ const (
 	KindIoT      = "iot"
 	KindRouter   = "router"
 	KindServer   = "server"
+	KindPrinter  = "printer"
 	KindOther    = "other"
 )
 

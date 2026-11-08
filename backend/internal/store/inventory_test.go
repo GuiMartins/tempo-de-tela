@@ -41,6 +41,7 @@ func TestQueriesFollowConfirmedAddressIntervals(t *testing.T) {
 		t.Fatal(err)
 	}
 	record(start.Add(2*time.Minute), "expired.test")
+	record(start.Add(25*time.Hour), "stale.test")
 
 	if _, err := st.DB.Exec(`INSERT INTO persons(id, name, monitoring, created_at) VALUES (1, 'Casa', 0, ?)`, start.Unix()); err != nil {
 		t.Fatal(err)
@@ -59,7 +60,9 @@ func TestQueriesFollowConfirmedAddressIntervals(t *testing.T) {
 		"before.test":     "ip:" + ip.String(),
 		"queued.test":     "mac:" + first.String(),
 		"reassigned.test": "mac:" + second.String(),
-		"expired.test":    "ip:" + ip.String(),
+		// Vínculo vencido há pouco continua valendo (o aparelho só não respondeu à varredura).
+		"expired.test": "mac:" + second.String(),
+		"stale.test":   "ip:" + ip.String(),
 	} {
 		var key string
 		err := st.DB.QueryRow(`

@@ -22,10 +22,22 @@ data class Device(
     @SerialName("last_dns") val lastDns: Long = 0,
     val hidden: Boolean = false,
     @SerialName("person_id") val personId: Long? = null,
+    /** Nome automático calculado pelo servidor (hostname, DNS reverso, sites acessados, fabricante). */
+    val label: String = "",
+    val brand: String = "",
+    @SerialName("ptr_name") val ptrName: String = "",
+    @SerialName("dns_label") val dnsLabel: String = "",
+    /** Este servidor e seus containers. */
+    val system: Boolean = false,
+    /** Cliente pela Tailscale. */
+    val remote: Boolean = false,
 ) {
     /** Nome automático: o que a rede diz do aparelho. */
     val detectedName: String
-        get() = listOf(mdnsName, hostname, vendor).firstOrNull { it.isNotBlank() } ?: ""
+        get() = label.ifBlank { listOf(mdnsName, hostname, vendor).firstOrNull { it.isNotBlank() } ?: "" }
+
+    /** Servidor e acesso remoto não são aparelhos da casa. */
+    val infra: Boolean get() = system || remote
 
     val displayName: String
         get() = name.ifBlank { detectedName.ifBlank { ipv4.ifBlank { ipv6.ifBlank { "Aparelho $id" } } } }

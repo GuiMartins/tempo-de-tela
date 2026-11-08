@@ -3,8 +3,12 @@ package store
 import (
 	"context"
 	"database/sql"
+	"net/netip"
 	"strings"
 	"time"
+
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/inventory"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/naming"
 )
 
 type DeviceCoverage struct {
@@ -27,6 +31,16 @@ type DeviceCoverage struct {
 	Hidden    bool   `json:"hidden"`
 	// PersonID é o dono atual (vínculo sem data de fim); nil = sem dono.
 	PersonID *int64 `json:"person_id"`
+	// PTRName é o nome reverso (DHCP do roteador ou MagicDNS da Tailscale).
+	PTRName string `json:"ptr_name"`
+	// DNSLabel é o que os domínios consultados dizem do aparelho ("Impressora Bambu Lab").
+	DNSLabel string `json:"dns_label"`
+	// Label é o melhor nome automático; Brand, o fabricante encurtado.
+	Label string `json:"label"`
+	Brand string `json:"brand"`
+	// System: este servidor e seus containers. Remote: cliente pela Tailscale.
+	System bool `json:"system"`
+	Remote bool `json:"remote"`
 }
 
 type DeviceFilter int
@@ -38,20 +52,56 @@ const (
 )
 
 const deviceColumns = `d.id, d.name, d.kind, d.mac, d.hostname, d.mdns_name, d.vendor, d.os_guess, d.kind_guess, d.random_mac,
-	d.ipv4, d.ipv6, d.first_seen, d.last_seen, d.last_dns, d.hidden, a.person_id
+	d.ipv4, d.ipv6, d.first_seen, d.last_seen, d.last_dns, d.hidden, a.person_id,
+	d.ptr_name, d.dns_label, d.dns_kind, d.dns_os, d.key
 	FROM devices d LEFT JOIN assignments a ON a.device_id = d.id AND a.until IS NULL`
+
+var tailscaleRange = netip.MustParsePrefix("100.64.0.0/10")
 
 type scanner interface{ Scan(...any) error }
 
 func scanDevice(row scanner) (DeviceCoverage, error) {
 	var d DeviceCoverage
 	var person sql.NullInt64
+	var dnsKind, dnsOS, key string
 	err := row.Scan(&d.ID, &d.Name, &d.Kind, &d.MAC, &d.Hostname, &d.MDNSName, &d.Vendor, &d.OSGuess, &d.KindGuess, &d.RandomMAC,
-		&d.IPv4, &d.IPv6, &d.FirstSeen, &d.LastSeen, &d.LastDNS, &d.Hidden, &person)
+		&d.IPv4, &d.IPv6, &d.FirstSeen, &d.LastSeen, &d.LastDNS, &d.Hidden, &person,
+		&d.PTRName, &d.DNSLabel, &dnsKind, &dnsOS, &key)
+	if err != nil {
+		return d, err
+	}
 	if person.Valid {
 		d.PersonID = &person.Int64
 	}
-	return d, err
+	// Pistas da rede (nome, DHCP) valem mais; os domínios completam o que faltar.
+	if d.KindGuess == "" || d.KindGuess == inventory.KindOther {
+		d.KindGuess = firstNonEmpty(dnsKind, d.KindGuess)
+	}
+	if d.OSGuess == "" {
+		d.OSGuess = dnsOS
+	}
+	d.System = key == SelfKey
+	if d.System {
+		d.KindGuess = inventory.KindServer
+	}
+	if ip, err := netip.ParseAddr(d.IPv4); err == nil && d.MAC == "" && tailscaleRange.Contains(ip) {
+		d.Remote = true
+	}
+	d.Brand = naming.ShortVendor(d.Vendor)
+	d.Label = naming.Label(naming.Clues{
+		Hostname: d.Hostname, PTR: d.PTRName, MDNS: d.MDNSName, DNSLabel: d.DNSLabel, Vendor: d.Vendor,
+		Kind: firstNonEmpty(d.Kind, d.KindGuess), OS: d.OSGuess, System: d.System, Remote: d.Remote,
+	})
+	return d, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // DeviceCoverage lista os aparelhos, dos que usaram o DNS mais recentemente para os outros.

@@ -10,6 +10,7 @@ import (
 
 	"github.com/miekg/dns"
 
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/naming"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
 )
 
@@ -121,7 +122,10 @@ func mdnsName(wire []byte, source netip.Addr) string {
 			ip, _ := netip.AddrFromSlice(a.A)
 			host := strings.TrimSuffix(a.Hdr.Name, ".")
 			if strings.HasSuffix(strings.ToLower(host), ".local") && ip.Unmap() == source {
-				return cleanClue([]byte(host[:len(host)-len(".local")]))
+				// TVs e Chromecasts anunciam UUIDs: não vale trocar um nome bom por isso.
+				if name := cleanClue([]byte(host[:len(host)-len(".local")])); naming.Useful(name) {
+					return name
+				}
 			}
 		}
 	}

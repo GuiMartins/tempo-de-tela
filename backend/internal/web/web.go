@@ -446,15 +446,6 @@ func formatTime(ts int64) string {
 	return time.Unix(ts, 0).Local().Format("02/01/2006 15:04")
 }
 
-func autoName(d store.DeviceCoverage) string {
-	for _, s := range []string{d.MDNSName, d.Hostname, d.Vendor} {
-		if s != "" {
-			return s
-		}
-	}
-	return "—"
-}
-
 func contains(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {

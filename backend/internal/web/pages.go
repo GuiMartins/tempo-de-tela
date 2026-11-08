@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,14 +45,11 @@ var kindInfo = map[string][2]string{
 	"phone": {"phone", "Celular"}, "tablet": {"tablet", "Tablet"}, "computer": {"laptop", "Computador"},
 	"tv": {"tv", "TV"}, "console": {"gamepad", "Videogame"}, "speaker": {"speaker", "Caixa de som"},
 	"iot": {"sensor", "Casa inteligente"}, "router": {"router", "Roteador"}, "server": {"server", "Servidor"},
-	"other": {"devices", "Outro"},
+	"printer": {"printer", "Impressora"}, "other": {"devices", "Outro"},
 }
 
 func viewDevice(d store.DeviceCoverage, owners map[int64]*store.Person, now time.Time) deviceView {
-	v := deviceView{DeviceCoverage: d, Detected: autoName(d)}
-	if v.Detected == "—" {
-		v.Detected = ""
-	}
+	v := deviceView{DeviceCoverage: d, Detected: d.Label}
 	v.Label = firstNonEmpty(d.Name, v.Detected, d.IPv4, d.IPv6, fmt.Sprintf("Aparelho %d", d.ID))
 	kind := firstNonEmpty(d.Kind, d.KindGuess)
 	v.Icon, v.KindLabel = "devices", ""
@@ -59,7 +57,13 @@ func viewDevice(d store.DeviceCoverage, owners map[int64]*store.Person, now time
 		v.Icon, v.KindLabel = k[0], k[1]
 	}
 	var details []string
-	for _, s := range []string{d.OSGuess, v.KindLabel, d.Vendor} {
+	if d.System {
+		details = append(details, "consultas do próprio servidor e dos containers")
+	}
+	if d.Remote {
+		details = append(details, "Tailscale")
+	}
+	for _, s := range []string{d.OSGuess, v.KindLabel, d.Brand} {
 		if s != "" && s != v.Label && s != v.Detected && !contains(details, s) {
 			details = append(details, s)
 		}
@@ -76,7 +80,7 @@ func viewDevice(d store.DeviceCoverage, owners map[int64]*store.Person, now time
 	if d.PersonID != nil {
 		v.Owner = owners[*d.PersonID]
 	}
-	parts := []string{v.Label, v.Detected, d.Vendor, d.OSGuess, v.KindLabel, d.IPv4, d.IPv6, d.MAC}
+	parts := []string{v.Label, v.Detected, d.Vendor, d.OSGuess, v.KindLabel, d.IPv4, d.IPv6, d.MAC, d.Hostname, d.PTRName, d.MDNSName, d.DNSLabel}
 	if v.Owner != nil {
 		parts = append(parts, v.Owner.Name)
 	}
@@ -102,6 +106,10 @@ func (h *handler) deviceViews(r *http.Request, filter store.DeviceFilter) ([]dev
 	for i, d := range devices {
 		views[i] = viewDevice(d, owners, now)
 	}
+	// Servidor e acesso remoto não são aparelhos da casa: vão para o fim da lista.
+	sort.SliceStable(views, func(i, j int) bool {
+		return !(views[i].System || views[i].Remote) && (views[j].System || views[j].Remote)
+	})
 	return views, nil
 }
 
@@ -237,8 +245,8 @@ func collector(name, status string) collectorView {
 
 type devicesPage struct {
 	base
-	Devices                       []deviceView
-	All, Online, NoDNS, NumHidden int
+	Devices                              []deviceView
+	All, Online, NoDNS, NumHidden, Infra int
 }
 
 func (h *handler) devicesPage(w http.ResponseWriter, r *http.Request) {
@@ -252,6 +260,8 @@ func (h *handler) devicesPage(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case d.Hidden:
 			p.NumHidden++
+		case d.System || d.Remote:
+			p.Infra++
 		default:
 			p.All++
 			if d.Online {

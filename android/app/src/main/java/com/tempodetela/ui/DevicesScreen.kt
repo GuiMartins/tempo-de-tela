@@ -71,7 +71,8 @@ fun DevicesScreen(
     var query by rememberSaveable { mutableStateOf("") }
     val now = nowSec()
     val order = compareByDescending<Device> { it.isOnline(now) }.thenByDescending { it.lastSeen }
-    val visible = state.devices.filter { !it.hidden }
+    val visible = state.devices.filter { !it.hidden && !it.infra }
+    val infra = state.devices.filter { !it.hidden && it.infra }.sortedWith(compareBy<Device> { !it.system }.thenByDescending { it.lastSeen })
     val owners = state.persons.associateBy { it.id }
     val term = query.trim().lowercase()
     val matches: (Device) -> Boolean = { d ->
@@ -81,7 +82,7 @@ fun DevicesScreen(
             DeviceFilter.NoDns -> d.lastDns == 0L
             DeviceFilter.Unowned -> d.personId == null
         }
-        byFilter && (term.isEmpty() || listOf(d.displayName, d.detectedName, d.vendor, d.ipv4, d.mac, owners[d.personId]?.name ?: "")
+        byFilter && (term.isEmpty() || listOf(d.displayName, d.detectedName, d.vendor, d.brand, d.ptrName, d.dnsLabel, d.hostname, d.ipv4, d.mac, owners[d.personId]?.name ?: "")
             .any { it.lowercase().contains(term) })
     }
     val shown = visible.filter(matches)
@@ -144,6 +145,10 @@ fun DevicesScreen(
                 }
                 item(key = "c${person.id}") { DeviceGroup(devices, now, onOpen) }
             }
+            if (infra.isNotEmpty() && filter == DeviceFilter.All && term.isEmpty()) {
+                item(key = "h-infra") { SectionHeader("Servidor e acesso remoto", trailing = "${infra.size}") }
+                item(key = "c-infra") { DeviceGroup(infra, now, onOpen) }
+            }
             if (state.loaded && shown.isEmpty() && visible.isNotEmpty()) {
                 item {
                     Text(
@@ -200,9 +205,13 @@ private fun DeviceRow(device: Device, now: Long, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(device.displayName, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val parts = buildList {
-                    if (device.name.isNotBlank() && device.detectedName.isNotBlank()) add(device.detectedName)
-                    else kindOf(device.effectiveKind)?.let { add(it.label) }
-                    if (device.ipv4.isNotBlank()) add(device.ipv4)
+                    when {
+                        device.system -> add("consultas do servidor e dos containers")
+                        device.remote -> add("Tailscale")
+                        device.name.isNotBlank() && device.detectedName.isNotBlank() -> add(device.detectedName)
+                        else -> kindOf(device.effectiveKind)?.let { k -> if (!device.detectedName.startsWith(k.label)) add(k.label) }
+                    }
+                    if (device.ipv4.isNotBlank() && !device.system) add(device.ipv4)
                 }
                 if (parts.isNotEmpty()) {
                     Text(
@@ -212,7 +221,7 @@ private fun DeviceRow(device: Device, now: Long, onClick: () -> Unit) {
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (device.lastDns == 0L) {
+                if (device.lastDns == 0L && !device.infra) {
                     Box(Modifier.padding(top = 4.dp)) { StatusBadge("fora do DNS", Tone.Warn, Icons.Outlined.WarningAmber) }
                 }
             }
@@ -305,6 +314,9 @@ fun DeviceSheet(
             HorizontalDivider()
             Column {
                 if (device.detectedName.isNotBlank()) InfoRow("Detectado como", device.detectedName)
+                val netName = listOf(device.hostname, device.ptrName, device.mdnsName).firstOrNull { it.isNotBlank() && it != device.detectedName }
+                if (netName != null) InfoRow("Nome na rede", netName)
+                if (device.dnsLabel.isNotBlank()) InfoRow("Pelos sites que acessa", device.dnsLabel)
                 if (device.mac.isNotBlank()) InfoRow("MAC", device.mac + if (device.randomMac) " (aleatório)" else "")
                 if (device.ipv4.isNotBlank()) InfoRow("IPv4", device.ipv4)
                 if (device.ipv6.isNotBlank()) InfoRow("IPv6", device.ipv6)

@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Speaker
@@ -30,6 +31,7 @@ val deviceKinds = listOf(
     Kind("iot", "Casa inteligente", Icons.Outlined.Sensors),
     Kind("router", "Roteador", Icons.Outlined.Router),
     Kind("server", "Servidor", Icons.Outlined.Dns),
+    Kind("printer", "Impressora", Icons.Outlined.Print),
     Kind("other", "Outro", Icons.Outlined.Devices),
 )
 

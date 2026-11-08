@@ -100,11 +100,15 @@ func bindAddress(ctx context.Context, tx *sql.Tx, ip netip.Addr, id, since, unti
 	return err
 }
 
+// stickyBinding: depois que a varredura deixa de ver o aparelho (celular dormindo não responde
+// ARP), o IP continua dele por este tempo, enquanto nenhum outro MAC assumir o IP.
+const stickyBinding = 24 * time.Hour
+
 func deviceAt(ctx context.Context, tx *sql.Tx, ip string, ts int64) (int64, error) {
 	var id int64
 	err := tx.QueryRowContext(ctx, `
 		SELECT device_id FROM device_addresses WHERE ip = ? AND since <= ? AND valid_until > ?
-		ORDER BY since DESC LIMIT 1`, ip, ts, ts).Scan(&id)
+		ORDER BY since DESC LIMIT 1`, ip, ts, ts-int64(stickyBinding)).Scan(&id)
 	return id, err
 }
 

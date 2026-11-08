@@ -272,7 +272,7 @@ fun PersonSheet(
     }
 
     if (person != null && addingDevice) {
-        val free = devices.filter { !it.hidden && it.personId != person.id }
+        val free = devices.filter { !it.hidden && !it.infra && it.personId != person.id }
             .sortedWith(compareBy<Device> { it.personId != null }.thenByDescending { it.lastSeen })
         AlertDialog(
             onDismissRequest = { addingDevice = false },
