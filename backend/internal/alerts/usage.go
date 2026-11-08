@@ -42,6 +42,7 @@ func EvaluateUsage(ctx context.Context, st *store.Store, catalogs *usage.Catalog
 	}
 	cat := catalogs.Get()
 	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	until := now.Add(time.Second) // só o que já aconteceu (now pode ser um instante passado nos testes)
 	for _, a := range list {
 		var hits []store.Hit
 		var person *store.Person
@@ -59,14 +60,14 @@ func EvaluateUsage(ctx context.Context, st *store.Store, catalogs *usage.Catalog
 			if person != nil && !person.Monitoring {
 				continue
 			}
-			hits, err = st.DeviceHits(ctx, d.ID, day, day.AddDate(0, 0, 1))
+			hits, err = st.DeviceHits(ctx, d.ID, day, until)
 		case a.PersonID != nil:
 			p, ok := personByID[*a.PersonID]
 			if !ok || !p.Monitoring {
 				continue
 			}
 			person = &p
-			hits, err = st.PersonHits(ctx, p.ID, day, day.AddDate(0, 0, 1))
+			hits, err = st.PersonHits(ctx, p.ID, day, until)
 		default:
 			continue
 		}
