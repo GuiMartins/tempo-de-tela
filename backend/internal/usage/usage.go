@@ -288,7 +288,8 @@ type Unclassified struct {
 func UnclassifiedSites(uses []store.DomainUse, cat *catalog.Catalog, limit int) []Unclassified {
 	bySite := map[string]*Unclassified{}
 	for _, u := range uses {
-		if cat.Match(u.Domain) != nil || strings.HasSuffix(u.Domain, ".arpa") {
+		// Nome sem ponto é da rede local (o Mac procurando "macbook"), não um site.
+		if cat.Match(u.Domain) != nil || strings.HasSuffix(u.Domain, ".arpa") || !strings.Contains(u.Domain, ".") {
 			continue
 		}
 		site, err := publicsuffix.EffectiveTLDPlusOne(strings.TrimSuffix(strings.ToLower(u.Domain), "."))

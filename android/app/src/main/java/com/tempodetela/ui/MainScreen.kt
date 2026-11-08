@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private enum class Tab(val label: String, val icon: ImageVector) {
+    Today("Hoje", Icons.Outlined.Today),
     Devices("Aparelhos", Icons.Outlined.Devices),
     Persons("Pessoas", Icons.Outlined.People),
     Server("Servidor", Icons.Outlined.Dns),
@@ -55,17 +57,36 @@ fun MainScreen(vm: AppViewModel) {
     // -1 = cadastro de pessoa nova; null = nenhuma folha aberta.
     var openPerson by rememberSaveable { mutableStateOf<Long?>(null) }
     val snackbar = remember { SnackbarHostState() }
+    var detailPerson by rememberSaveable { mutableStateOf<Long?>(null) }
+    var classifying by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
 
     val current = Tab.entries[tab]
+    val detail = detailPerson?.let { id -> state.persons.firstOrNull { it.id == id } }
+    if (classifying) {
+        ClassifyScreen(state.unclassified, state.catalog, onBack = { classifying = false }) { site, appId, name, category ->
+            vm.classify(site, appId, name, category)
+        }
+        return
+    }
+    if (detail != null) {
+        PersonDetailScreen(
+            person = detail,
+            load = { date, days -> vm.personUsage(detail.id, date, days) },
+            onBack = { detailPerson = null },
+            onEdit = { openPerson = detail.id },
+        )
+        openPerson?.let { id -> PersonSheetHost(vm, state, id, onClose = { openPerson = null }, onDeleted = { detailPerson = null }) }
+        return
+    }
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (current == Tab.Devices) BrandLogo(32.dp)
-                        Text(if (current == Tab.Devices) "Tempo de Tela" else current.label)
+                        if (current == Tab.Today) BrandLogo(32.dp)
+                        Text(if (current == Tab.Today) "Tempo de Tela" else current.label)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -101,18 +122,24 @@ fun MainScreen(vm: AppViewModel) {
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (current) {
-            Tab.Devices -> DevicesScreen(
-                state, vm::refresh, { openDevice = it.id }, vm::unpair, modifier,
+            Tab.Today -> TodayScreen(
+                state, vm::refresh,
+                onOpenPerson = { detailPerson = it.id },
+                onClassify = { classifying = true },
+                onGoToPersons = { tab = Tab.Persons.ordinal },
+                onUnpair = vm::unpair, modifier = modifier,
                 banner = update?.let { u ->
                     { UpdateCard(u, vm.updater.installedVersion, installState, vm::installUpdate, Modifier.padding(top = 8.dp)) }
                 },
             )
-            Tab.Persons -> PersonsScreen(state, vm::refresh, { openPerson = it.id }, { openPerson = -1 }, vm::unpair, modifier)
+            Tab.Devices -> DevicesScreen(state, vm::refresh, { openDevice = it.id }, vm::unpair, modifier)
+            Tab.Persons -> PersonsScreen(state, vm::refresh, { detailPerson = it.id }, { openPerson = -1 }, vm::unpair, modifier)
             Tab.Server -> ServerScreen(
                 state, config, vm::unpair, modifier,
                 appVersion = vm.updater.installedVersion,
                 update = update, installState = installState, checkingUpdate = checkingUpdate,
                 onCheckUpdate = { vm.checkUpdate(force = true) }, onInstallUpdate = vm::installUpdate,
+                unclassified = state.unclassified.size, onClassify = { classifying = true },
             )
         }
     }
@@ -128,29 +155,35 @@ fun MainScreen(vm: AppViewModel) {
                 onDismiss = { openDevice = null },
                 onSave = { name, kind, personId -> vm.saveDevice(device, name, kind, personId) },
                 onHidden = { vm.setHidden(device, it) },
+                loadUsage = { vm.deviceUsage(device.id, java.time.LocalDate.now(), 1) },
             )
         }
     }
 
-    openPerson?.let { id ->
-        val person = if (id == -1L) null else state.persons.firstOrNull { it.id == id }
-        if (id != -1L && person == null) {
-            openPerson = null
-        } else {
-            PersonSheet(
-                person = person,
-                devices = state.devices,
-                onDismiss = { openPerson = null },
-                onSave = { name, emoji, kind, monitoring ->
-                    // Depois de cadastrar, a folha continua aberta para vincular os aparelhos.
-                    vm.savePerson(person?.id, name, emoji, kind, monitoring) { saved -> openPerson = saved.id }
-                },
-                onDelete = {
-                    if (person != null) vm.deletePerson(person)
-                    openPerson = null
-                },
-                onAssign = { deviceId, personId -> vm.assign(deviceId, personId) },
-            )
-        }
+    openPerson?.let { id -> PersonSheetHost(vm, state, id, onClose = { openPerson = null }, onDeleted = {}) }
+}
+
+@Composable
+private fun PersonSheetHost(vm: AppViewModel, state: UiState, id: Long, onClose: () -> Unit, onDeleted: () -> Unit) {
+    var current by rememberSaveable { mutableStateOf(id) }
+    val person = if (current == -1L) null else state.persons.firstOrNull { it.id == current }
+    if (current != -1L && person == null) {
+        onClose()
+        return
     }
+    PersonSheet(
+        person = person,
+        devices = state.devices,
+        onDismiss = onClose,
+        onSave = { name, emoji, kind, monitoring ->
+            // Depois de cadastrar, a folha continua aberta para vincular os aparelhos.
+            vm.savePerson(person?.id, name, emoji, kind, monitoring) { saved -> current = saved.id }
+        },
+        onDelete = {
+            if (person != null) vm.deletePerson(person)
+            onDeleted()
+            onClose()
+        },
+        onAssign = { deviceId, personId -> vm.assign(deviceId, personId) },
+    )
 }

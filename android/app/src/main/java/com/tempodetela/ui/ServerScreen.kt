@@ -51,6 +51,8 @@ fun ServerScreen(
     checkingUpdate: Boolean = false,
     onCheckUpdate: () -> Unit = {},
     onInstallUpdate: () -> Unit = {},
+    unclassified: Int = 0,
+    onClassify: () -> Unit = {},
 ) {
     var confirm by remember { mutableStateOf(false) }
     val status = LocalStatus.current
@@ -131,6 +133,21 @@ fun ServerScreen(
                         Text(value.ifBlank { "—" }, color = color, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
+            }
+        }
+
+        SectionHeader("Catálogo de apps")
+        AppCard(Modifier.fillMaxWidth(), onClick = onClassify) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Sites sem categoria", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        if (unclassified == 0) "Tudo classificado" else "$unclassified para classificar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = onClassify) { Text("Abrir") }
             }
         }
 

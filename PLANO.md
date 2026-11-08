@@ -2,28 +2,27 @@
 
 Nome: **`tempo-de-tela`**.
 
-## Status (07/11/2026)
+## Status (08/11/2026)
 
-Fase 1 em andamento. O executável integra DNS, SQLite, registro assíncrono, retenção, os
-coletores Linux de ARP, DHCPv4 passivo e mDNS via IPv4 (aparelho identificado pelo MAC) e o
-painel web com senha: cobertura dos aparelhos (renomear, ocultar), configurações editáveis,
-troca de senha, instruções do roteador e pareamento do app Android por QR code (token por
-aparelho, revogável). A API `/api/v1` exige o token do pareamento. Dockerfile (distroless,
-amd64+arm64), `casaos/docker-compose.yml` (rede do host, só `NET_RAW` e `NET_BIND_SERVICE`)
-e workflow do GHCR prontos.
-**Deploy feito em 07/11/2026:** o `pihole` foi parado (restart policy `no`, pra não voltar no
-boot e brigar pela porta 53) e o app foi instalado pelo `casaos-cli`. Responde DNS na LAN e na
-Tailscale, bloqueia DoH (`dns.google` → NXDOMAIN), usa ~11 MB de RAM e está healthy. No primeiro
-minuto, o ARP achou 14 aparelhos pelo MAC, o mDNS deu nome a 4 e 11 clientes já usavam o DNS.
-Os sockets de ARP e DHCP abriram com as permissões do container (`NET_RAW`).
-Falta na fase 1: a descoberta por SSDP/NetBIOS.
+**Fases 1, 3 e 4 no ar.** Backend no zima como DNS da casa (no lugar do pihole), com coletores
+ARP/DHCP/mDNS, nomes automáticos dos aparelhos (DHCP, DNS reverso do roteador e da Tailscale,
+mDNS, assinatura pelos domínios), painel web com senha e API. App Android (Releases no GitHub,
+atualiza sozinho) com pareamento por QR, pessoas, aparelhos e vínculos.
 
-**Fase 3 (Android base) em andamento:** API de pessoas, vínculos com histórico e edição de
-aparelhos no backend (deploy feito). App em `android/` com pareamento por QR ou manual,
-failover LAN → Tailscale, abas Aparelhos, Pessoas e Servidor; testado no emulador contra uma
-cópia do banco do zima. Falta parear um celular de verdade e assinar o APK de release
-(secrets do repositório). Voltar ao Pi-hole: `docker stop tempo-de-tela`,
-`docker update --restart unless-stopped pihole`, `docker start pihole`.
+Fase 4: catálogo embutido domínio → app → categoria (`backend/internal/catalog/catalog.yaml`),
+classificação dos sites desconhecidos pelo app (regras e apps do usuário no banco), sessões
+estimadas por aparelho e app e, no app, a aba Hoje (tempo de cada pessoa e top apps) e a tela da
+pessoa (dia: total, categorias, linha do tempo, apps; semana: barras por dia, mapa de calor).
+
+**Faltam:** fase 2 (tirar o `8.8.8.8` do DHCP do roteador e resolver o DNS IPv6: hoje parte das
+consultas escapa), fase 5 (insights, limites, notificações) e fase 6 (pausar, hora de dormir,
+bloqueio). Descoberta por SSDP/NetBIOS ficou de fora (os nomes já vêm de outras fontes).
+Limitação conhecida: apps de computador que consultam o servidor o tempo todo em segundo plano
+(ChatGPT, Claude, WhatsApp Desktop) aparecem com mais tempo do que o uso real.
+
+Voltar ao Pi-hole: `docker stop tempo-de-tela`, `docker update --restart unless-stopped pihole`,
+`docker start pihole`.
+
 Alternativa pronta considerada: AdGuard Home (clientes nomeados, serviços bloqueados por aparelho,
 agenda, controle parental e busca segura).
 

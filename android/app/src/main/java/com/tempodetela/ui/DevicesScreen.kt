@@ -37,11 +37,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tempodetela.data.Device
 import com.tempodetela.data.Person
+import com.tempodetela.data.UsageSummary
 
 private enum class DeviceFilter { All, Online, NoDns, Unowned }
 
@@ -242,7 +246,10 @@ fun DeviceSheet(
     onDismiss: () -> Unit,
     onSave: (name: String, kind: String, personId: Long?) -> Unit,
     onHidden: (Boolean) -> Unit,
+    loadUsage: (suspend () -> Result<UsageSummary>)? = null,
 ) {
+    var usage by remember(device.id) { mutableStateOf<UsageSummary?>(null) }
+    LaunchedEffect(device.id) { loadUsage?.invoke()?.onSuccess { usage = it } }
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by rememberSaveable(device.id) { mutableStateOf(device.name) }
     var kind by rememberSaveable(device.id) { mutableStateOf(device.kind) }
@@ -276,6 +283,19 @@ fun DeviceSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            usage?.takeIf { it.totalSec > 0 }?.let { u ->
+                Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Hoje neste aparelho", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                            Text(formatDuration(u.totalSec), style = MaterialTheme.typography.titleSmall)
+                        }
+                        val maxSec = u.apps.maxOfOrNull { it.sec } ?: 1
+                        u.apps.take(3).forEach { AppUsageRow(it, maxSec) }
+                    }
+                }
+            }
 
             Text("Dono", style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

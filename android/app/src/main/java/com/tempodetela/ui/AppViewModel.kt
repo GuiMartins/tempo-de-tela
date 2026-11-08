@@ -4,7 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tempodetela.TempoApp
+import com.tempodetela.data.AppCatalog
 import com.tempodetela.data.AppUpdate
+import com.tempodetela.data.PersonToday
+import com.tempodetela.data.Unclassified
+import com.tempodetela.data.UsageSummary
 import com.tempodetela.data.Device
 import com.tempodetela.data.Person
 import com.tempodetela.data.ServerConfig
@@ -28,10 +32,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.time.LocalDate
 
 data class UiState(
     val devices: List<Device> = emptyList(),
     val persons: List<Person> = emptyList(),
+    val today: List<PersonToday> = emptyList(),
+    val unclassified: List<Unclassified> = emptyList(),
+    val catalog: AppCatalog = AppCatalog(),
     val status: ServerStatus? = null,
     val loading: Boolean = false,
     val loaded: Boolean = false,
@@ -99,12 +107,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val devices = async { api.devices() }
         val persons = async { api.persons() }
         val status = async { api.status() }
+        // Servidor antigo (sem catálogo) não deve derrubar o resto.
+        val today = async { runCatching { api.usageToday() }.getOrDefault(emptyList()) }
+        val unclassified = async { runCatching { api.unclassified() }.getOrDefault(emptyList()) }
+        val catalog = async { runCatching { api.catalog() }.getOrDefault(AppCatalog()) }
         _state.update {
             it.copy(
                 devices = devices.await(), persons = persons.await(), status = status.await(),
+                today = today.await(), unclassified = unclassified.await(), catalog = catalog.await(),
                 loaded = true, error = null, unauthorized = false,
             )
         }
+    }
+
+    suspend fun personUsage(id: Long, date: LocalDate, days: Int): Result<UsageSummary> =
+        runCatching { api.personUsage(id, date.toString(), days) }
+
+    suspend fun deviceUsage(id: Long, date: LocalDate, days: Int): Result<UsageSummary> =
+        runCatching { api.deviceUsage(id, date.toString(), days) }
+
+    /** Classifica um site: em um app do catálogo ou num app novo. */
+    fun classify(site: String, appId: String?, newAppName: String?, category: String?) = mutate("Classificado") {
+        api.createRule(buildJsonObject {
+            put("domain", site)
+            if (appId != null) {
+                put("app_id", appId)
+            } else {
+                put("new_app", buildJsonObject {
+                    put("name", newAppName ?: site)
+                    put("category", category ?: "other")
+                })
+            }
+        })
     }
 
     /** Executa a alteração, recarrega os dados e avisa o erro, se houver. */

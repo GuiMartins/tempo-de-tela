@@ -62,9 +62,10 @@ apps:
   # Música
   - {id: spotify, name: Spotify, category: music, domains: [spotify.com, scdn.co, spotifycdn.com]}
   - {id: deezer, name: Deezer, category: music, domains: [deezer.com, dzcdn.net]}
+  - {id: pocket-casts, name: Pocket Casts, category: music, domains: [pocketcasts.com]}
   # Inteligência artificial
   - {id: chatgpt, name: ChatGPT, category: ai, domains: [chatgpt.com, openai.com, oaistatic.com, oaiusercontent.com]}
-  - {id: claude, name: Claude, category: ai, domains: [claude.ai, anthropic.com, claudeusercontent.com]}
+  - {id: claude, name: Claude, category: ai, domains: [claude.ai, claude.com, anthropic.com, claudeusercontent.com]}
   - {id: gemini, name: Gemini, category: ai, domains: [gemini.google.com, bard.google.com]}
   # Estudo e trabalho
   - {id: classroom, name: Google Classroom, category: study, domains: [classroom.google.com]}
@@ -77,12 +78,14 @@ apps:
   - {id: github, name: GitHub, category: study, domains: [github.com, githubusercontent.com, githubassets.com]}
   - {id: office, name: Microsoft 365, category: study, domains: [office.com, office.net, sharepoint.com, onedrive.live.com, teams.microsoft.com]}
   - {id: zoom, name: Zoom, category: study, domains: [zoom.us]}
+  - {id: slack, name: Slack, category: study, domains: [slack.com, slackb.com, slack-edge.com]}
   # Compras
-  - {id: shopee, name: Shopee, category: shopping, domains: [shopee.com.br, shopee.com, susercontent.com]}
+  - {id: shopee, name: Shopee, category: shopping, domains: [shopee.com.br, shopee.com, susercontent.com, shopeemobile.com]}
   - {id: mercado-livre, name: Mercado Livre, category: shopping, domains: [mercadolivre.com.br, mercadolibre.com, mlstatic.com]}
   - {id: amazon, name: Amazon, category: shopping, domains: [amazon.com.br, amazon.com]}
   - {id: shein, name: Shein, category: shopping, domains: [shein.com, shein.com.br, ltwebstatic.com]}
   - {id: aliexpress, name: AliExpress, category: shopping, domains: [aliexpress.com, alicdn.com]}
+  - {id: olx, name: OLX, category: shopping, domains: [olx.com.br]}
   # Sistema: o aparelho conversa com isso sozinho; não é tempo de tela.
   - id: system-apple
     name: Serviços Apple
@@ -103,15 +106,16 @@ apps:
   - id: system-cdn
     name: CDNs e certificados
     category: system
-    domains: [akamaiedge.net, akamai.net, akamaized.net, akadns.net, edgekey.net, edgesuite.net, cloudfront.net, cloudflare.com, cloudflare.net, fastly.net, fastly-edge.com, amazonaws.com, digicert.com, letsencrypt.org, lencr.org, sectigo.com, globalsign.com, pki.goog, ocsp.org, usertrust.com]
+    domains: [akamaiedge.net, akamai.net, akamaized.net, akamaihd.net, akahost.net, akadns.net, azure.net, edgekey.net, edgesuite.net, cloudfront.net, cloudflare.com, cloudflare.net, fastly.net, fastly-edge.com, amazonaws.com, digicert.com, letsencrypt.org, lencr.org, sectigo.com, globalsign.com, pki.goog, ocsp.org, usertrust.com]
   - id: system-telemetry
     name: Telemetria e anúncios
     category: system
-    domains: [datadoghq.com, launchdarkly.com, intercom.io, sentry.io, branch.io, adjust.com, appsflyer.com, onesignal.com, unity3d.com, unityads.unity3d.com, applovin.com, ironsrc.com, mopub.com, youboranqs01.com, scorecardresearch.com, newrelic.com, segment.io, amplitude.com, mixpanel.com, braze.com, nel.cloudflare.com]
+    domains: [datadoghq.com, launchdarkly.com, intercom.io, sentry.io, branch.io, adjust.com, appsflyer.com, onesignal.com, unity3d.com, unityads.unity3d.com, applovin.com, ironsrc.com, mopub.com, youboranqs01.com, scorecardresearch.com, newrelic.com, segment.io, amplitude.com, mixpanel.com, braze.com, nel.cloudflare.com, vungle.com, pangle.io, pangleglobal.com, inmobi.com, inmobicdn.net, inner-active.mobi, liftoff.io, appsflyersdk.com, amazon-adsystem.com, adsbynimbus.com, statsigapi.net, incognia.com, dc-telemetry.net, amagi.tv, moatads.com, adcolony.com, chartboost.com, mintegral.com, rayjump.com, smaato.net, criteo.com, taboola.com, outbrain.com, fyber.com, digitalturbine.com, bugsnag.com, instabug.com, yandex.net, kochava.com, singular.net, tapjoy.com, adsrvr.org, rubiconproject.com, pubmatic.com, openx.net, urbanairship.com, adstk.io, appcenter.ms, cloudflareinsights.com]
   - id: system-devices
     name: Aparelhos da casa (fabricantes)
     category: system
-    domains: [lge.com, lgsmartad.com, lgsmartplatform.com, wiselg.com, lgthinq.com, alphonso.tv, samsung.com, samsungiotcloud.com, samsunghrm.com, samsungcloudsolution.com, samsungotn.net, cspserver.net, xiaomi.com, mi.com, miwifi.com, bambulab.com, meethue.com, ecoflow.com, tuyaus.com, tuya.com, ueiwsp.com, tailscale.com, tailscale.io]
+    domains: [lge.com, lgsmartad.com, lgsmartplatform.com, wiselg.com, lgthinq.com, alphonso.tv, samsung.com, samsungiotcloud.com, samsunghrm.com, samsungcloudsolution.com, samsungotn.net, cspserver.net, xiaomi.com, mi.com, miwifi.com, bambulab.com, meethue.com, ecoflow.com, tuyaus.com, tuya.com, ueiwsp.com, tailscale.com, tailscale.io, nvidia.com, gigabyte.com, lgeapi.com, lgtviot.com, smartthings.com, samsungcloud.com, samsungapps.com, samsungelectronics.com, bblmw.com, amazontrust.com, ssl-images-amazon.com, media-amazon.com, cloud.microsoft, golang.org, alexa.amazon.com, roku.com, sonos.com, hp.com, epson.com, brother.com, bixbyllm.com, icewhale.io]
+  - {id: system-ignored, name: Ignorados por você, category: system, domains: []}
   - id: system-network
     name: Rede e horário
     category: system
