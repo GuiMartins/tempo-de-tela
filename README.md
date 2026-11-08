@@ -83,7 +83,20 @@ também vale.
 - `GET|POST /api/v1/persons`, `GET|PATCH|DELETE /api/v1/persons/{id}`: `{"name", "emoji",
   "kind": "child|adult|shared", "monitoring"}`. Com `monitoring` falso, as consultas dos
   aparelhos da pessoa não são gravadas.
+- `GET /api/v1/catalog`: categorias e apps (embutidos em `backend/internal/catalog/catalog.yaml`
+  e os criados pelo usuário).
+- `GET /api/v1/catalog/unclassified?days=7`: sites acessados que não estão no catálogo.
+- `POST /api/v1/catalog/rules`: `{"domain", "app_id"}` ou `{"domain", "new_app": {"name",
+  "category"}}`; `DELETE /api/v1/catalog/rules/{domain}`.
+- `GET /api/v1/persons/{id}/usage?date=AAAA-MM-DD&days=1|7` (e `/devices/{id}/usage`): tempo
+  de tela estimado, por categoria, por app, por dia, sessões do dia e mapa de calor da semana.
+- `GET /api/v1/usage/today`: tempo de hoje de cada pessoa, com os 3 apps mais usados.
 - `GET /healthz`: sem autenticação, para o healthcheck.
+
+O tempo de tela é estimado pelas consultas DNS: consultas do mesmo app no mesmo aparelho formam
+uma sessão enquanto o intervalo for menor que o da categoria (vídeo e jogos 10 min, mensagens
+4 min, demais 5–8 min); a sessão vai até 1 min depois da última consulta, e consulta isolada
+(sincronização em segundo plano) não conta. Apps abertos ao mesmo tempo não somam em dobro.
 
 ## App Android
 

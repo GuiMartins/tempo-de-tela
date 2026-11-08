@@ -22,6 +22,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/querylog"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/usage"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/web"
 )
 
@@ -114,6 +115,10 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 	}
 	// Consultas do próprio servidor e dos containers Docker viram um aparelho só.
 	st.SetSelfMatcher(enrich.SelfMatcher())
+	catalogs, err := usage.NewCatalogs(ctx, st)
+	if err != nil {
+		return err
+	}
 
 	listener, err := net.Listen("tcp", webAddr)
 	if err != nil {
@@ -148,6 +153,7 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 			Dropped: log.Dropped, LAN: lan.Status,
 			HTTPPort: strconv.Itoa(listener.Addr().(*net.TCPAddr).Port),
 			Started:  time.Now(),
+			Catalogs: catalogs,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,

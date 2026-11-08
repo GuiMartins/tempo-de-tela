@@ -17,6 +17,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/usage"
 )
 
 func newServer(t *testing.T) (*httptest.Server, *store.Store, *settings.Manager) {
@@ -35,8 +36,13 @@ func newServer(t *testing.T) (*httptest.Server, *store.Store, *settings.Manager)
 		t.Fatal(err)
 	}
 	t.Cleanup(dns.Shutdown)
+	catalogs, err := usage.NewCatalogs(context.Background(), st)
+	if err != nil {
+		t.Fatal(err)
+	}
 	srv := httptest.NewServer(Handler(Deps{
-		Version: "teste", Store: st, Settings: cfg, Auth: auth.New(st), DNS: dns,
+		Catalogs: catalogs,
+		Version:  "teste", Store: st, Settings: cfg, Auth: auth.New(st), DNS: dns,
 		Dropped: func() uint64 { return 0 }, LAN: func() collectors.Status { return collectors.Status{} },
 		HTTPPort: "8994",
 	}))

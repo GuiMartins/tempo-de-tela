@@ -1,0 +1,118 @@
+# Catálogo domínio → app → categoria.
+#
+# Cada domínio vale para ele e todos os subdomínios; vence o sufixo mais longo
+# (youtubei.googleapis.com é YouTube mesmo com googleapis.com em "sistema").
+# Categoria com ignore: true não entra no tempo de tela (telemetria, atualizações,
+# CDNs compartilhadas, anúncios). gap_min: quanto tempo sem consultas fecha uma sessão.
+# O app Android acrescenta regras e apps próprios por cima deste arquivo.
+
+categories:
+  - {id: video, label: Vídeo, gap_min: 10}
+  - {id: social, label: Redes sociais, gap_min: 5}
+  - {id: games, label: Jogos, gap_min: 10}
+  - {id: messages, label: Mensagens, gap_min: 4}
+  - {id: music, label: Música, gap_min: 10}
+  - {id: ai, label: Inteligência artificial, gap_min: 8}
+  - {id: study, label: Estudo e trabalho, gap_min: 8}
+  - {id: shopping, label: Compras, gap_min: 5}
+  - {id: other, label: Outros, gap_min: 5}
+  - {id: system, label: Sistema, ignore: true}
+
+apps:
+  # Vídeo
+  - {id: youtube, name: YouTube, category: video, domains: [youtube.com, googlevideo.com, ytimg.com, youtubei.googleapis.com, youtube-nocookie.com, yt3.ggpht.com, youtubekids.com, youtu.be]}
+  - {id: youtube-music, name: YouTube Music, category: music, domains: [music.youtube.com]}
+  - {id: netflix, name: Netflix, category: video, domains: [netflix.com, nflxso.net, nflximg.com, nflxvideo.net, nflxext.com, netflix.net]}
+  - {id: globoplay, name: Globoplay, category: video, domains: [globoplay.globo.com, video.globo.com, globo.com, glbimg.com, globoid.globo.com]}
+  - {id: disney, name: Disney+, category: video, domains: [disneyplus.com, disney-plus.net, bamgrid.com, dssott.com, starplus.com]}
+  - {id: prime-video, name: Prime Video, category: video, domains: [primevideo.com, aiv-cdn.net, aiv-delivery.net, pv-cdn.net]}
+  - {id: max, name: Max, category: video, domains: [max.com, hbomax.com, hbomaxcdn.com, discomax.com]}
+  - {id: crunchyroll, name: Crunchyroll, category: video, domains: [crunchyroll.com, vrv.co]}
+  - {id: twitch, name: Twitch, category: video, domains: [twitch.tv, ttvnw.net, jtvnw.net]}
+  - {id: pluto, name: Pluto TV, category: video, domains: [pluto.tv]}
+  # Redes sociais
+  - {id: tiktok, name: TikTok, category: social, domains: [tiktok.com, tiktokv.com, tiktokcdn.com, tiktokcdn-us.com, tiktokv.us, byteoversea.com, ibytedtos.com, ibyteimg.com, musical.ly]}
+  - {id: instagram, name: Instagram, category: social, domains: [instagram.com, cdninstagram.com, ig.me]}
+  - {id: facebook, name: Facebook, category: social, domains: [facebook.com, fb.com, facebook.net]}
+  - {id: threads, name: Threads, category: social, domains: [threads.net]}
+  - {id: x, name: X (Twitter), category: social, domains: [twitter.com, x.com, twimg.com, t.co]}
+  - {id: kwai, name: Kwai, category: social, domains: [kwai.com, kwaicdn.com, kwai-pro.com, kwai.net]}
+  - {id: snapchat, name: Snapchat, category: social, domains: [snapchat.com, sc-cdn.net, snap-dev.net]}
+  - {id: pinterest, name: Pinterest, category: social, domains: [pinterest.com, pinimg.com]}
+  - {id: reddit, name: Reddit, category: social, domains: [reddit.com, redd.it, redditmedia.com, redditstatic.com]}
+  # Mensagens
+  - {id: whatsapp, name: WhatsApp, category: messages, domains: [whatsapp.net, whatsapp.com, wa.me]}
+  - {id: telegram, name: Telegram, category: messages, domains: [telegram.org, telegram.me, t.me, cdn-telegram.org]}
+  - {id: discord, name: Discord, category: messages, domains: [discord.com, discord.gg, discordapp.com, discordapp.net, discord.media]}
+  # Jogos
+  - {id: roblox, name: Roblox, category: games, domains: [roblox.com, rbxcdn.com, rbx.com, roblox.qq.com]}
+  - {id: minecraft, name: Minecraft, category: games, domains: [minecraft.net, mojang.com, minecraftservices.com]}
+  - {id: fortnite, name: Fortnite, category: games, domains: [fortnite.com, epicgames.com, epicgames.dev, unrealengine.com, fortnite-vod.akamaized.net]}
+  - {id: free-fire, name: Free Fire, category: games, domains: [freefiremobile.com, garena.com, garenanow.com, ff.garena.com]}
+  - {id: supercell, name: Jogos Supercell (Clash, Brawl Stars), category: games, domains: [supercell.com, supercellid.com, brawlstarsgame.com, clashroyaleapp.com, clashofclans.com]}
+  - {id: pokemon-go, name: Pokémon GO, category: games, domains: [nianticlabs.com, pokemongolive.com]}
+  - {id: genshin, name: Genshin Impact, category: games, domains: [hoyoverse.com, mihoyo.com, yuanshen.com]}
+  - {id: among-us, name: Among Us, category: games, domains: [innersloth.com]}
+  - {id: subway-surfers, name: Subway Surfers, category: games, domains: [sybogames.com]}
+  - {id: ea, name: Jogos EA (FC, The Sims), category: games, domains: [ea.com, easports.com]}
+  - {id: playstation, name: PlayStation, category: games, domains: [playstation.net, playstation.com, sonyentertainmentnetwork.com]}
+  - {id: nintendo, name: Nintendo Switch, category: games, domains: [nintendo.net, nintendo.com]}
+  - {id: xbox, name: Xbox, category: games, domains: [xboxlive.com, xbox.com]}
+  - {id: steam, name: Steam, category: games, domains: [steampowered.com, steamcontent.com, steamcommunity.com, steamstatic.com, steamserver.net]}
+  # Música
+  - {id: spotify, name: Spotify, category: music, domains: [spotify.com, scdn.co, spotifycdn.com]}
+  - {id: deezer, name: Deezer, category: music, domains: [deezer.com, dzcdn.net]}
+  # Inteligência artificial
+  - {id: chatgpt, name: ChatGPT, category: ai, domains: [chatgpt.com, openai.com, oaistatic.com, oaiusercontent.com]}
+  - {id: claude, name: Claude, category: ai, domains: [claude.ai, anthropic.com, claudeusercontent.com]}
+  - {id: gemini, name: Gemini, category: ai, domains: [gemini.google.com, bard.google.com]}
+  # Estudo e trabalho
+  - {id: classroom, name: Google Classroom, category: study, domains: [classroom.google.com]}
+  - {id: google-docs, name: Google Docs e Drive, category: study, domains: [docs.google.com, drive.google.com, sheets.google.com, slides.google.com]}
+  - {id: meet, name: Google Meet, category: study, domains: [meet.google.com]}
+  - {id: khan, name: Khan Academy, category: study, domains: [khanacademy.org, kastatic.org]}
+  - {id: duolingo, name: Duolingo, category: study, domains: [duolingo.com, duolingo.cn]}
+  - {id: wikipedia, name: Wikipédia, category: study, domains: [wikipedia.org, wikimedia.org]}
+  - {id: brainly, name: Brainly, category: study, domains: [brainly.com.br, brainly.com]}
+  - {id: github, name: GitHub, category: study, domains: [github.com, githubusercontent.com, githubassets.com]}
+  - {id: office, name: Microsoft 365, category: study, domains: [office.com, office.net, sharepoint.com, onedrive.live.com, teams.microsoft.com]}
+  - {id: zoom, name: Zoom, category: study, domains: [zoom.us]}
+  # Compras
+  - {id: shopee, name: Shopee, category: shopping, domains: [shopee.com.br, shopee.com, susercontent.com]}
+  - {id: mercado-livre, name: Mercado Livre, category: shopping, domains: [mercadolivre.com.br, mercadolibre.com, mlstatic.com]}
+  - {id: amazon, name: Amazon, category: shopping, domains: [amazon.com.br, amazon.com]}
+  - {id: shein, name: Shein, category: shopping, domains: [shein.com, shein.com.br, ltwebstatic.com]}
+  - {id: aliexpress, name: AliExpress, category: shopping, domains: [aliexpress.com, alicdn.com]}
+  # Sistema: o aparelho conversa com isso sozinho; não é tempo de tela.
+  - id: system-apple
+    name: Serviços Apple
+    category: system
+    domains: [apple.com, icloud.com, icloud-content.com, apple-dns.net, aaplimg.com, mzstatic.com, cdn-apple.com, apple-cloudkit.com, push.apple.com, safebrowsing.apple, apple.news]
+  - id: system-google
+    name: Serviços Google
+    category: system
+    domains: [google.com, google.com.br, googleapis.com, gstatic.com, ggpht.com, gvt1.com, gvt2.com, android.com, googleusercontent.com, withgoogle.com, google-analytics.com, googletagmanager.com, doubleclick.net, googlesyndication.com, googleadservices.com, app-measurement.com, crashlytics.com, firebaseio.com, firebase.google.com, firebaselogging.googleapis.com]
+  - id: system-microsoft
+    name: Serviços Microsoft
+    category: system
+    domains: [microsoft.com, windows.com, windowsupdate.com, msftconnecttest.com, msftncsi.com, live.com, skype.com, msn.com, bing.com, msedge.net, azureedge.net, azurefd.net, azure.com, office365.com]
+  - id: system-meta-sdk
+    name: SDK e CDN da Meta
+    category: system
+    domains: [graph.facebook.com, fbcdn.net, fbsbx.com]
+  - id: system-cdn
+    name: CDNs e certificados
+    category: system
+    domains: [akamaiedge.net, akamai.net, akamaized.net, akadns.net, edgekey.net, edgesuite.net, cloudfront.net, cloudflare.com, cloudflare.net, fastly.net, fastly-edge.com, amazonaws.com, digicert.com, letsencrypt.org, lencr.org, sectigo.com, globalsign.com, pki.goog, ocsp.org, usertrust.com]
+  - id: system-telemetry
+    name: Telemetria e anúncios
+    category: system
+    domains: [datadoghq.com, launchdarkly.com, intercom.io, sentry.io, branch.io, adjust.com, appsflyer.com, onesignal.com, unity3d.com, unityads.unity3d.com, applovin.com, ironsrc.com, mopub.com, youboranqs01.com, scorecardresearch.com, newrelic.com, segment.io, amplitude.com, mixpanel.com, braze.com, nel.cloudflare.com]
+  - id: system-devices
+    name: Aparelhos da casa (fabricantes)
+    category: system
+    domains: [lge.com, lgsmartad.com, lgsmartplatform.com, wiselg.com, lgthinq.com, alphonso.tv, samsung.com, samsungiotcloud.com, samsunghrm.com, samsungcloudsolution.com, samsungotn.net, cspserver.net, xiaomi.com, mi.com, miwifi.com, bambulab.com, meethue.com, ecoflow.com, tuyaus.com, tuya.com, ueiwsp.com, tailscale.com, tailscale.io]
+  - id: system-network
+    name: Rede e horário
+    category: system
+    domains: [ntp.org, pool.ntp.org, time.apple.com, time.google.com, time.windows.com, invalid, local, arpa, lan, localdomain]

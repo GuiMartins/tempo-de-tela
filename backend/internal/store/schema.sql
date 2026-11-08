@@ -96,3 +96,16 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
+
+-- Catálogo do usuário: apps criados no app Android e classificações de domínios.
+CREATE TABLE IF NOT EXISTS catalog_apps (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  category   TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog_rules (
+  domain     TEXT PRIMARY KEY,
+  app_id     TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);

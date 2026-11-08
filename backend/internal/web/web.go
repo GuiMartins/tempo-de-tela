@@ -21,6 +21,7 @@ import (
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/dnsserver"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/usage"
 )
 
 //go:embed templates/*.html
@@ -46,6 +47,8 @@ type Deps struct {
 	HTTPPort string
 	// Started é a hora em que o serviço subiu (mostrada como "no ar há…").
 	Started time.Time
+	// Catalogs é o catálogo domínio → app → categoria (embutido + regras do usuário).
+	Catalogs *usage.Catalogs
 }
 
 type handler struct{ Deps }
@@ -76,6 +79,7 @@ func Handler(d Deps) http.Handler {
 
 	mux.HandleFunc("GET /api/v1/status", h.api(h.status))
 	h.apiRoutes(mux)
+	h.usageRoutes(mux)
 	return http.NewCrossOriginProtection().Handler(mux)
 }
 
