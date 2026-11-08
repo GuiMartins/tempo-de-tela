@@ -94,6 +94,10 @@ cd android
 ./dev.sh test    # testes unitários
 ```
 
+O app se atualiza sozinho: consulta a última Release do GitHub (no máximo a cada 6 h), mostra
+um aviso com "Atualizar" e instala o APK por cima, pedindo uma vez a liberação do Android para
+instalar apps desta fonte.
+
 O GitHub Actions builda o APK debug a cada mudança em `android/` e, em tag `v*`, anexa o APK
 release assinado na Release (precisa dos secrets `RELEASE_KEYSTORE_BASE64`,
 `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` e `RELEASE_KEY_PASSWORD`).

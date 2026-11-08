@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,13 +33,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tempodetela.BuildConfig
+import com.tempodetela.data.AppUpdate
 import com.tempodetela.data.ServerConfig
+import com.tempodetela.update.InstallState
 
 @Composable
-fun ServerScreen(state: UiState, config: ServerConfig?, onUnpair: () -> Unit, modifier: Modifier = Modifier) {
+fun ServerScreen(
+    state: UiState,
+    config: ServerConfig?,
+    onUnpair: () -> Unit,
+    modifier: Modifier = Modifier,
+    appVersion: String = BuildConfig.VERSION_NAME,
+    update: AppUpdate? = null,
+    installState: InstallState = InstallState.Idle,
+    checkingUpdate: Boolean = false,
+    onCheckUpdate: () -> Unit = {},
+    onInstallUpdate: () -> Unit = {},
+) {
     var confirm by remember { mutableStateOf(false) }
     val status = LocalStatus.current
     val c = MaterialTheme.colorScheme
@@ -120,18 +134,35 @@ fun ServerScreen(state: UiState, config: ServerConfig?, onUnpair: () -> Unit, mo
             }
         }
 
+        SectionHeader("App")
+        if (update != null) {
+            UpdateCard(update, appVersion, installState, onInstallUpdate)
+        } else {
+            AppCard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Tempo de Tela $appVersion", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Atualiza sozinho pelas versões publicadas no GitHub.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.onSurfaceVariant,
+                        )
+                    }
+                    if (checkingUpdate) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    } else {
+                        TextButton(onClick = onCheckUpdate) { Text("Procurar") }
+                    }
+                }
+            }
+        }
+
         OutlinedButton(
             onClick = { confirm = true },
             colors = ButtonDefaults.outlinedButtonColors(contentColor = c.error),
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         ) { Text("Desparear este celular") }
-        Text(
-            "Tempo de Tela ${BuildConfig.VERSION_NAME}",
-            style = MaterialTheme.typography.bodySmall,
-            color = c.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-        )
+        Spacer(Modifier.padding(bottom = 16.dp))
     }
     if (confirm) {
         AlertDialog(

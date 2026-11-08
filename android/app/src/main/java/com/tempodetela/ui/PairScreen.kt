@@ -53,7 +53,7 @@ import com.tempodetela.data.ServerConfig
 import kotlinx.coroutines.launch
 
 @Composable
-fun PairScreen(pair: suspend (ServerConfig) -> String?) {
+fun PairScreen(pair: suspend (ServerConfig) -> String?, banner: (@Composable () -> Unit)? = null) {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
@@ -90,7 +90,8 @@ fun PairScreen(pair: suspend (ServerConfig) -> String?) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(40.dp))
+            banner?.invoke()
+            Spacer(Modifier.height(if (banner == null) 40.dp else 16.dp))
             BrandLogo(72.dp)
             Text("Tempo de Tela", style = MaterialTheme.typography.headlineMedium)
             Text(

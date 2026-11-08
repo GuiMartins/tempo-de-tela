@@ -47,6 +47,9 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 fun MainScreen(vm: AppViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val config by vm.config.collectAsStateWithLifecycle()
+    val update by vm.update.collectAsStateWithLifecycle()
+    val installState by vm.installState.collectAsStateWithLifecycle()
+    val checkingUpdate by vm.checkingUpdate.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openDevice by rememberSaveable { mutableStateOf<Long?>(null) }
     // -1 = cadastro de pessoa nova; null = nenhuma folha aberta.
@@ -98,9 +101,19 @@ fun MainScreen(vm: AppViewModel) {
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (current) {
-            Tab.Devices -> DevicesScreen(state, vm::refresh, { openDevice = it.id }, vm::unpair, modifier)
+            Tab.Devices -> DevicesScreen(
+                state, vm::refresh, { openDevice = it.id }, vm::unpair, modifier,
+                banner = update?.let { u ->
+                    { UpdateCard(u, vm.updater.installedVersion, installState, vm::installUpdate, Modifier.padding(top = 8.dp)) }
+                },
+            )
             Tab.Persons -> PersonsScreen(state, vm::refresh, { openPerson = it.id }, { openPerson = -1 }, vm::unpair, modifier)
-            Tab.Server -> ServerScreen(state, config, vm::unpair, modifier)
+            Tab.Server -> ServerScreen(
+                state, config, vm::unpair, modifier,
+                appVersion = vm.updater.installedVersion,
+                update = update, installState = installState, checkingUpdate = checkingUpdate,
+                onCheckUpdate = { vm.checkUpdate(force = true) }, onInstallUpdate = vm::installUpdate,
+            )
         }
     }
 

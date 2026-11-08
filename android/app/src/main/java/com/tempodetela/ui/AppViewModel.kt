@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tempodetela.TempoApp
+import com.tempodetela.data.AppUpdate
 import com.tempodetela.data.Device
 import com.tempodetela.data.Person
 import com.tempodetela.data.ServerConfig
@@ -11,6 +12,7 @@ import com.tempodetela.data.ServerStatus
 import com.tempodetela.data.buildApi
 import com.tempodetela.data.isUnauthorized
 import com.tempodetela.data.userMessage
+import com.tempodetela.update.InstallState
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -42,6 +44,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val api get() = tempo.api
 
     val config: StateFlow<ServerConfig?> = tempo.serverStore.config
+
+    val updater = tempo.updater
+    val update: StateFlow<AppUpdate?> = updater.available
+    val installState: StateFlow<InstallState> = updater.state
+
+    private val _checkingUpdate = MutableStateFlow(false)
+    val checkingUpdate: StateFlow<Boolean> = _checkingUpdate
+
+    fun installUpdate() {
+        val u = update.value ?: return
+        viewModelScope.launch { updater.install(u) }
+    }
+
+    /** Consulta o GitHub; [force] ignora o intervalo de 6 h (botão da aba Servidor). */
+    fun checkUpdate(force: Boolean = false) {
+        viewModelScope.launch {
+            _checkingUpdate.value = force
+            val found = updater.check(force)
+            _checkingUpdate.value = false
+            if (force && found == null) _messages.tryEmit("Você já está na versão mais nova")
+        }
+    }
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state

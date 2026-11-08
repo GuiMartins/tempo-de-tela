@@ -64,6 +64,7 @@ fun DevicesScreen(
     onOpen: (Device) -> Unit,
     onUnpair: () -> Unit,
     modifier: Modifier = Modifier,
+    banner: (@Composable () -> Unit)? = null,
 ) {
     var showHidden by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf(DeviceFilter.All) }
@@ -92,6 +93,7 @@ fun DevicesScreen(
 
     PullToRefreshBox(isRefreshing = state.loading, onRefresh = onRefresh, modifier = modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+            banner?.let { b -> item(key = "update") { b() } }
             state.error?.let { msg -> item { ErrorCard(msg, state.unauthorized, onRefresh, onUnpair) } }
             if (state.loaded) {
                 item {
