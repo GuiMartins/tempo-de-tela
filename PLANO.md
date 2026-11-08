@@ -4,7 +4,7 @@ Nome: **`tempo-de-tela`**.
 
 ## Status (08/11/2026)
 
-**Fases 1, 3, 4, 5 e 6 no ar.** Backend no zima como DNS da casa (no lugar do pihole), com coletores
+**Todas as fases do plano no ar (1 a 6).** Backend no zima como DNS da casa (no lugar do pihole), com coletores
 ARP/DHCP/mDNS, nomes automáticos dos aparelhos (DHCP, DNS reverso do roteador e da Tailscale,
 mDNS, assinatura pelos domínios), painel web com senha e API. App Android (Releases no GitHub,
 atualiza sozinho) com pareamento por QR, pessoas, aparelhos e vínculos.
@@ -24,8 +24,12 @@ internet (prazo ou sem prazo), bloquear na hora de dormir, bloquear vídeo/jogos
 categorias sempre bloqueadas e categoria que passou do limite (o total bloqueia tudo). Serviços do
 sistema ficam liberados. No app: pausar/liberar na tela da pessoa e as opções nas regras.
 
-**Falta:** fase 2 (tirar o `8.8.8.8` do DHCP do roteador e resolver o DNS IPv6). Sem ela, parte
-das consultas escapa do registro **e dos bloqueios**.
+Fase 2 (08/11/2026): no roteador (Xiaomi AX6000, firmware 1.0.122), o DNS2 do DHCP (`8.8.8.8`)
+foi removido e o IPv6 foi desligado (o firmware não deixa desligar só o anúncio de DNS IPv6, e os
+aparelhos Apple preferiam o DNS IPv6 do roteador). Resultado: 16 de 17 aparelhos vistos na rede
+usando o DNS da casa (o que falta é o próprio roteador); o iPhone que tinha zero consultas passou a
+ter mais de mil em 6 h. Voltar atrás: DNS2 `8.8.8.8` em 局域网设置 e o interruptor "IPV6网络设置"
+em 上网设置.
 
 Limites do bloqueio por DNS: conexões já abertas continuam até o app resolver o nome de novo (o
 TTL entregue é de no máximo 60 s); dados móveis e DNS IPv6 do roteador escapam; a busca do
