@@ -14,8 +14,6 @@ services:
       - NET_RAW
     environment:
       TZ: America/Sao_Paulo
-      # ntfy da casa (container próprio): os alertas chegam na hora no celular. Vazio = só pelo app.
-      NTFY_URL: http://100.97.73.4:8996
     volumes:
       # Sintaxe curta: o Docker cria a pasta como root, dono que o container (sem DAC_OVERRIDE) precisa.
       - /DATA/AppData/tempo-de-tela/data:/appdata

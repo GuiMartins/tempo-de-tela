@@ -43,9 +43,9 @@ class AlertsWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         prefs.edit().putLong("ultimo_id", events.maxOf { it.id }).apply()
         // Primeira vez: só marca até onde já viu, sem despejar o histórico em notificações.
         if (lastSeen < 0) return Result.success()
-        // Com ntfy, o servidor já entregou na hora: notificar aqui de novo seria em dobro.
-        val ntfy = runCatching { app.api.status().ntfyUrl }.getOrDefault("")
-        if (ntfy.isNotBlank()) return Result.success()
+        // Com o Telegram, o servidor já entregou na hora: notificar aqui de novo seria em dobro.
+        val telegram = runCatching { app.api.status().telegram.active }.getOrDefault(false)
+        if (telegram) return Result.success()
 
         val manager = NotificationManagerCompat.from(applicationContext)
         if (!manager.areNotificationsEnabled()) return Result.success()

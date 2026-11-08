@@ -31,12 +31,12 @@ usando o DNS da casa (o que falta é o próprio roteador); o iPhone que tinha ze
 ter mais de mil em 6 h. Voltar atrás: DNS2 `8.8.8.8` em 局域网设置 e o interruptor "IPV6网络设置"
 em 上网设置.
 
-Avisos de uso + ntfy (08/11/2026): avisos cadastrados no app ("me avise quando <app | categoria |
-qualquer uso> for usado em <aparelho | pessoa>"), um alerta cada vez que começa um bloco de uso,
-avaliados a cada 1 min. Todos os alertas são publicados num ntfy da casa (container `ntfy`,
-porta 8996, tópico aleatório gerado pelo servidor) e chegam no celular em 1 a 3 min; fora de casa
-precisa da Tailscale ligada no celular (o ntfy guarda 24 h). Com ntfy, o app para de notificar
-sozinho pra não chegar em dobro.
+Avisos de uso + Telegram (08/11/2026): avisos cadastrados no app ("me avise quando <app |
+categoria | qualquer uso> for usado em <aparelho | pessoa>"), um alerta cada vez que começa um
+bloco de uso, avaliados a cada 1 min. Todos os alertas vão por um bot do Telegram do usuário
+(token no painel, conversas conectadas por link com código) e chegam em 1 a 3 min, em casa ou
+fora. Com o Telegram conectado, o app para de notificar sozinho pra não chegar em dobro. (Primeiro
+foi feito com ntfy auto-hospedado; trocado porque exigia instalar mais um app no celular.)
 
 Limites do bloqueio por DNS: conexões já abertas continuam até o app resolver o nome de novo (o
 TTL entregue é de no máximo 60 s); dados móveis e DNS IPv6 do roteador escapam; a busca do

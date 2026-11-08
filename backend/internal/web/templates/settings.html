@@ -53,18 +53,57 @@
     </label>
   </section>
 
-  <section class="card">
-    <div class="card-head"><h2>{{icon "alert"}} Notificações</h2>{{if .NtfyURL}}<span class="badge">{{icon "check"}}ntfy ligado</span>{{end}}</div>
-    {{if .NtfyURL}}
-    <p>Os alertas são publicados na hora no tópico <code>{{.NtfyURL}}</code>. Assine no app ntfy do celular (no app Tempo de Tela, aba Servidor, “Assinar no ntfy”).</p>
-    {{else}}
-    <p class="hint">Os alertas chegam pelo app Android, com até ~20 min de atraso. Para receber na hora, rode um ntfy e passe o endereço dele na variável <code>NTFY_URL</code> do container.</p>
-    {{end}}
-  </section>
-
   <div class="savebar"><button class="btn">{{icon "check"}}Salvar configurações</button></div>
 </form>
+
+<section class="card" style="max-width: 760px; margin-top: 1rem">
+  <div class="card-head"><h2>{{icon "alert"}} Alertas no Telegram</h2>{{if .Telegram.Chats}}<span class="badge">{{icon "check"}}ligado</span>{{end}}</div>
+  {{if not .Telegram.Token}}
+  <div class="stack">
+    <p class="hint">Sem o Telegram, os alertas chegam pelo app Android, com até ~20 min de atraso. Com ele, chegam em 1 a 3 min numa conversa com um bot seu.</p>
+    <ol class="steps">
+      <li><span>No Telegram, abra o <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, mande <code>/newbot</code> e escolha um nome (ex.: “Tempo de Tela da Casa”).</span></li>
+      <li><span>Copie o token que ele devolve e cole aqui.</span></li>
+    </ol>
+    <form method="post" action="/telegram" class="row-form">
+      <input name="token" placeholder="123456789:AA..." autocomplete="off" spellcheck="false" required style="flex: 1">
+      <button class="btn">{{icon "check"}}Conectar bot</button>
+    </form>
+  </div>
+  {{else}}
+  <div class="stack">
+    <p>Bot <a href="https://t.me/{{.Telegram.Bot}}" target="_blank" rel="noopener">@{{.Telegram.Bot}}</a>.
+      {{if .Telegram.Chats}}Os alertas vão para:{{else}}<strong>Falta conectar uma conversa.</strong>{{end}}</p>
+    {{if .Telegram.Chats}}
+    <ul class="plain">
+      {{range .Telegram.Chats}}
+      <li><span>{{.Name}}</span>
+        <form method="post" action="/telegram/chats/{{.ID}}/delete" onsubmit="return confirm('Desconectar {{.Name}}? Essa conversa para de receber os alertas.')"><button class="btn sm danger">Desconectar</button></form></li>
+      {{end}}
+    </ul>
+    {{end}}
+    <div class="tg-link">
+      {{with .TelegramQR}}<div class="qr">{{.}}</div>{{end}}
+      <div>
+        <p>Para receber{{if .Telegram.Chats}} em mais um celular{{end}}, abra o link no celular e toque em <strong>Iniciar</strong>, ou leia o QR code com a câmera:</p>
+        <p><a class="btn" href="{{.TelegramLink}}" target="_blank" rel="noopener">{{icon "alert"}}Conectar no Telegram</a></p>
+        <p class="hint">Só quem tem este link consegue receber os alertas. Desconectar alguém troca o link.</p>
+      </div>
+    </div>
+    <div class="row-form">
+      {{if .Telegram.Chats}}<form method="post" action="/telegram/test"><button class="btn sm ghost">Mandar teste</button></form>{{end}}
+      <form method="post" action="/telegram/delete" onsubmit="return confirm('Remover o bot? Os alertas voltam a chegar só pelo app.')"><button class="btn sm danger">Remover bot</button></form>
+    </div>
+  </div>
+  {{end}}
+</section>
 <style>
+  .row-form { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  .plain { list-style: none; padding: 0; margin: 0; }
+  .plain li { display: flex; align-items: center; justify-content: space-between; padding: .3rem 0; }
+  .tg-link { display: flex; gap: 1.2rem; align-items: flex-start; flex-wrap: wrap; }
+  .tg-link .qr { width: 160px; flex: none; }
+  .tg-link > div:last-child { flex: 1; min-width: 220px; }
   .unit { display: flex; align-items: center; gap: .6rem; color: var(--muted); }
   .savebar { position: sticky; bottom: 1rem; display: flex; justify-content: flex-end; }
   .savebar .btn { box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent); }

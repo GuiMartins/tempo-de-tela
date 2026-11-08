@@ -84,9 +84,14 @@ data class ServerStatus(
     val dns: DnsStatus = DnsStatus(),
     @SerialName("dropped_logs") val droppedLogs: Long = 0,
     val lan: LanStatus = LanStatus(),
-    /** Tópico do ntfy da casa; vazio = alertas só pelas notificações deste app. */
-    @SerialName("ntfy_url") val ntfyUrl: String = "",
+    val telegram: TelegramStatus = TelegramStatus(),
 )
+
+/** Bot do Telegram que manda os alertas; [chats] > 0 = já chegam por lá (o app não notifica em dobro). */
+@Serializable
+data class TelegramStatus(val bot: String = "", val link: String = "", val chats: Int = 0) {
+    val active: Boolean get() = bot.isNotBlank() && chats > 0
+}
 
 @Serializable
 data class ApiError(val error: String = "")

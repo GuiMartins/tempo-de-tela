@@ -144,22 +144,30 @@ fun ServerScreen(
         state.status?.let { s ->
             SectionHeader("Notificações")
             val context = LocalContext.current
+            val tg = s.telegram
             AppCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(if (s.ntfyUrl.isNotBlank()) "Na hora, pelo app ntfy" else "Por este app", style = MaterialTheme.typography.titleSmall)
                         Text(
-                            if (s.ntfyUrl.isNotBlank()) {
-                                "Os alertas chegam em 1 a 3 minutos. Fora de casa, mantenha a Tailscale ligada."
-                            } else {
-                                "Os alertas chegam com até ~20 min de atraso."
+                            when {
+                                tg.active -> "No Telegram (@${tg.bot})"
+                                tg.bot.isNotBlank() -> "Falta conectar o Telegram"
+                                else -> "Por este app"
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            when {
+                                tg.active -> "Os alertas chegam em 1 a 3 minutos no Telegram."
+                                tg.bot.isNotBlank() -> "Toque em Conectar e depois em Iniciar na conversa com o bot."
+                                else -> "Os alertas chegam com até ~20 min de atraso. Para receber na hora no Telegram, configure um bot no painel (Configurações)."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = c.onSurfaceVariant,
                         )
                     }
-                    if (s.ntfyUrl.isNotBlank()) {
-                        TextButton(onClick = { openNtfy(context, s.ntfyUrl) }) { Text("Assinar") }
+                    if (tg.link.isNotBlank()) {
+                        TextButton(onClick = { openLink(context, tg.link) }) { Text(if (tg.active) "Mais um" else "Conectar") }
                     }
                 }
             }
@@ -227,16 +235,10 @@ fun ServerScreen(
 }
 
 
-/** Abre o app ntfy já na tela de assinar o tópico; sem o app, abre a página dele na loja. */
-private fun openNtfy(context: Context, topicUrl: String) {
-    val url = Uri.parse(topicUrl)
-    val link = Uri.parse("ntfy://${url.encodedAuthority}${url.encodedPath}?secure=${url.scheme == "https"}")
-    val candidates = listOf(link, Uri.parse("market://details?id=io.heckel.ntfy"), Uri.parse("https://play.google.com/store/apps/details?id=io.heckel.ntfy"))
-    for (uri in candidates) {
-        try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            return
-        } catch (_: ActivityNotFoundException) {
-        }
+/** Abre o link de conexão do bot (o Android entrega pro app do Telegram, ou pro navegador). */
+private fun openLink(context: Context, link: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (_: ActivityNotFoundException) {
     }
 }

@@ -59,7 +59,7 @@ fun UsageAlertsSheet(
     devices: List<Device>,
     persons: List<Person>,
     catalog: AppCatalog,
-    ntfyOn: Boolean,
+    telegramOn: Boolean,
     initialDeviceId: Long? = null,
     onDismiss: () -> Unit,
     onCreate: (appId: String?, category: String?, deviceId: Long?, personId: Long?) -> Unit,
@@ -83,7 +83,7 @@ fun UsageAlertsSheet(
                 Text("Avisos de uso", style = MaterialTheme.typography.titleLarge)
                 Text(
                     "Uma notificação cada vez que alguém começa a usar o que você escolher. " +
-                        if (ntfyOn) "Chega em 1 a 3 minutos, pelo ntfy." else "Chega com até ~20 min de atraso.",
+                        if (telegramOn) "Chega em 1 a 3 minutos, pelo Telegram." else "Chega com até ~20 min de atraso.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

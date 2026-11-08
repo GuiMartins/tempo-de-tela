@@ -186,7 +186,7 @@ fun MainScreen(vm: AppViewModel) {
             devices = state.devices,
             persons = state.persons,
             catalog = state.catalog,
-            ntfyOn = !state.status?.ntfyUrl.isNullOrBlank(),
+            telegramOn = state.status?.telegram?.active == true,
             initialDeviceId = target.takeIf { it > 0 },
             onDismiss = { usageAlertsFor = null },
             onCreate = vm::createUsageAlert,

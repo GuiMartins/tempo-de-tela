@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/collectors"
+	"github.com/GuiMartins/tempo-de-tela/backend/internal/notify"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/settings"
 	"github.com/GuiMartins/tempo-de-tela/backend/internal/store"
 )
@@ -280,16 +281,22 @@ type settingsPage struct {
 	Settings      settings.Settings
 	UpstreamsText string
 	LAN           collectors.Status
-	NtfyURL       string
+	Telegram      notify.Config
+	TelegramLink  string
+	TelegramQR    template.HTML
 }
 
 func (h *handler) settingsPage(w http.ResponseWriter, r *http.Request) {
 	cfg := h.Settings.Get()
-	render(w, http.StatusOK, "settings.html", settingsPage{
+	page := settingsPage{
 		base: h.base(r, "settings", "Configurações"), Settings: cfg,
 		UpstreamsText: strings.Join(cfg.Upstreams, "\n"), LAN: h.LAN(),
-		NtfyURL: h.Ntfy.SubscribeURL(),
-	})
+		Telegram: h.Telegram.Config(), TelegramLink: h.Telegram.LinkURL(),
+	}
+	if page.TelegramLink != "" {
+		page.TelegramQR, _ = qrSVG(page.TelegramLink)
+	}
+	render(w, http.StatusOK, "settings.html", page)
 }
 
 type pairingPage struct {

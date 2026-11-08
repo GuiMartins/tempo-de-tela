@@ -53,8 +53,8 @@ type Deps struct {
 	Catalogs *usage.Catalogs
 	// Policy aplica os bloqueios no DNS; nil nos testes que não precisam.
 	Policy *policy.Engine
-	// Ntfy publica os alertas na hora; nil = desligado.
-	Ntfy *notify.Ntfy
+	// Telegram manda os alertas na hora; nil nos testes que não precisam.
+	Telegram *notify.Telegram
 }
 
 // changed avisa o motor de bloqueio que pessoas, regras ou vínculos mudaram.
@@ -89,6 +89,10 @@ func Handler(d Deps) http.Handler {
 	mux.HandleFunc("POST /devices/{id}", h.panel(h.updateDevice))
 	mux.HandleFunc("POST /pair", h.panel(h.pair))
 	mux.HandleFunc("POST /tokens/{id}/delete", h.panel(h.deleteToken))
+	mux.HandleFunc("POST /telegram", h.panel(h.saveTelegram))
+	mux.HandleFunc("POST /telegram/test", h.panel(h.testTelegram))
+	mux.HandleFunc("POST /telegram/delete", h.panel(h.deleteTelegram))
+	mux.HandleFunc("POST /telegram/chats/{id}/delete", h.panel(h.deleteTelegramChat))
 
 	mux.HandleFunc("GET /api/v1/status", h.api(h.status))
 	h.apiRoutes(mux)
@@ -375,6 +379,46 @@ func (h *handler) pair(w http.ResponseWriter, r *http.Request) {
 	render(w, http.StatusOK, "paired.html", pairedPage{Name: name, Token: token, URLs: urls, QR: svg})
 }
 
+func (h *handler) saveTelegram(w http.ResponseWriter, r *http.Request) {
+	if err := h.Telegram.SetToken(r.Context(), r.PostFormValue("token")); err != nil {
+		back(w, r, "settings", "", capitalize(err.Error())+".")
+		return
+	}
+	back(w, r, "settings", "Bot conectado. Agora abra o link de conexão no celular.", "")
+}
+
+func (h *handler) testTelegram(w http.ResponseWriter, r *http.Request) {
+	if err := h.Telegram.Test(r.Context()); err != nil {
+		back(w, r, "settings", "", capitalize(err.Error())+".")
+		return
+	}
+	back(w, r, "settings", "Mensagem de teste enviada.", "")
+}
+
+func (h *handler) deleteTelegram(w http.ResponseWriter, r *http.Request) {
+	if err := h.Telegram.Remove(r.Context()); err != nil {
+		back(w, r, "settings", "", capitalize(err.Error())+".")
+		return
+	}
+	back(w, r, "settings", "Bot removido. Os alertas voltam a chegar só pelo app.", "")
+}
+
+func (h *handler) deleteTelegramChat(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := h.Telegram.RemoveChat(r.Context(), id); errors.Is(err, store.ErrNotFound) {
+		back(w, r, "settings", "", "Conversa não encontrada.")
+		return
+	} else if err != nil {
+		back(w, r, "settings", "", capitalize(err.Error())+".")
+		return
+	}
+	back(w, r, "settings", "Conversa desconectada. O link de conexão mudou.", "")
+}
+
 func (h *handler) deleteToken(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -399,9 +443,24 @@ func (h *handler) status(w http.ResponseWriter, r *http.Request) {
 		DNS         dnsStats          `json:"dns"`
 		DroppedLogs uint64            `json:"dropped_logs"`
 		LAN         collectors.Status `json:"lan"`
-		// NtfyURL é o tópico do ntfy para assinar no celular; vazio = alertas só pelo app.
-		NtfyURL string `json:"ntfy_url"`
-	}{h.Version, h.dnsStats(), h.Dropped(), h.LAN(), h.Ntfy.SubscribeURL()})
+		Telegram    telegramStatus    `json:"telegram"`
+	}{h.Version, h.dnsStats(), h.Dropped(), h.LAN(), h.telegramStatus()})
+}
+
+// telegramStatus diz ao app se os alertas já chegam pelo Telegram (aí ele não notifica em dobro)
+// e qual link conecta mais uma conversa.
+type telegramStatus struct {
+	Bot   string `json:"bot"`
+	Link  string `json:"link"`
+	Chats int    `json:"chats"`
+}
+
+func (h *handler) telegramStatus() telegramStatus {
+	c := h.Telegram.Config()
+	if c.Token == "" {
+		return telegramStatus{}
+	}
+	return telegramStatus{Bot: c.Bot, Link: h.Telegram.LinkURL(), Chats: len(c.Chats)}
 }
 
 func render(w http.ResponseWriter, status int, name string, data any) {

@@ -153,14 +153,14 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 	go func() { defer close(alertsDone); alerts.Run(enrichCtx, st, catalogs) }()
 	policyDone := make(chan struct{})
 	go func() { defer close(policyDone); blocks.Run(enrichCtx) }()
-	// ntfy com problema não pode derrubar o DNS da casa: sem ele, os alertas seguem pelo app.
-	ntfy, err := notify.New(ctx, st, os.Getenv("NTFY_URL"))
+	// Telegram com problema não pode derrubar o DNS da casa: sem ele, os alertas seguem pelo app.
+	telegram, err := notify.NewTelegram(ctx, st, notify.APIURL)
 	if err != nil {
-		slog.Warn("ntfy desligado", "erro", err)
+		slog.Warn("Telegram desligado", "erro", err)
 	}
-	ntfyDone := make(chan struct{})
-	go func() { defer close(ntfyDone); ntfy.Run(enrichCtx) }()
-	defer func() { stopEnrich(); <-enrichDone; <-alertsDone; <-policyDone; <-ntfyDone }()
+	telegramDone := make(chan struct{})
+	go func() { defer close(telegramDone); telegram.Run(enrichCtx) }()
+	defer func() { stopEnrich(); <-enrichDone; <-alertsDone; <-policyDone; <-telegramDone }()
 
 	lanCtx, stopLAN := context.WithCancel(ctx)
 	lan, lanDone := collectors.Start(lanCtx, st, cfg.Get, lanEnabled, lanInterface)
@@ -173,7 +173,7 @@ func run(ctx context.Context, dataDir, dnsAddr, webAddr string, lanEnabled bool,
 			Started:  time.Now(),
 			Catalogs: catalogs,
 			Policy:   blocks,
-			Ntfy:     ntfy,
+			Telegram: telegram,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,

@@ -21,7 +21,7 @@ Em `backend/` (Go):
 - `internal/auth`: senha do painel (PBKDF2), sessões e tokens de pareamento da API.
 - `internal/web`: painel (aparelhos, configurações, pareamento por QR code, senha) e API `/api/v1`.
 - `internal/alerts`: regras por pessoa e avisos de uso, avaliados no servidor.
-- `internal/notify`: publica os alertas num ntfy, pra chegarem na hora no celular.
+- `internal/notify`: manda os alertas por um bot do Telegram, pra chegarem na hora no celular.
 
 ## Instalar no CasaOS / ZimaOS
 
@@ -42,10 +42,10 @@ docker exec tempo-de-tela /tempo-de-tela -reset-password
 Depois, no DHCP do roteador, coloque o IP do servidor como DNS (o painel tem as instruções).
 Se o servidor cair, a casa fica sem DNS: volte o DNS do roteador para automático.
 
-**Alertas na hora (opcional):** suba o ntfy da casa com [`casaos/ntfy.yml`](casaos/ntfy.yml)
-(porta 8996) e passe o endereço em `NTFY_URL` no compose do Tempo de Tela. O tópico é gerado
-aleatório pelo servidor; no celular, instale o app ntfy e toque em "Assinar" na aba Servidor do
-Tempo de Tela. Sem `NTFY_URL`, os alertas chegam pelo próprio app, com até ~20 min de atraso.
+**Alertas no Telegram (opcional):** crie um bot no [@BotFather](https://t.me/BotFather), cole o
+token em Configurações › Alertas no Telegram e abra o link de conexão (ou o QR code) no celular
+de quem vai receber. Os alertas chegam em 1 a 3 min; só quem tem o link recebe. Sem bot, os
+alertas chegam pelo próprio app Android, com até ~20 min de atraso.
 
 ## Rodar localmente
 
@@ -110,13 +110,14 @@ também vale.
   compras). O bloqueio é no DNS (responde "não existe"); serviços do sistema continuam liberados.
 - `GET /api/v1/events?after=ID`: alertas novos (limite estourado, uso na hora de dormir ou na
   aula, app usado pela primeira vez, aparelho novo na rede, aviso de uso), avaliados a cada
-  5 min (avisos de uso, a cada 1 min). Com ntfy, o servidor publica cada um na hora; sem ele,
-  o app Android consulta a cada 15 min e mostra como notificação, sem Firebase.
+  5 min (avisos de uso, a cada 1 min). Com o bot do Telegram, o servidor manda cada um na hora;
+  sem ele, o app Android consulta a cada 15 min e mostra como notificação, sem Firebase.
 - `GET/POST /api/v1/usage-alerts`, `DELETE /api/v1/usage-alerts/{id}`: avisos de uso.
   `{"app_id": "netflix", "device_id": 10}`, `{"category": "games", "person_id": 4}` ou só o
   aparelho/pessoa (qualquer uso). Avisa cada vez que começa um bloco de uso (sessões a até 5 min
   uma da outra são o mesmo uso), em 1 a 3 min.
-- `GET /api/v1/status`: versão, contadores do DNS, coletores e `ntfy_url` (tópico para assinar).
+- `GET /api/v1/status`: versão, contadores do DNS, coletores e `telegram` (`bot`, `link` de
+  conexão e quantas conversas recebem os alertas).
 - `GET /healthz`: sem autenticação, para o healthcheck.
 
 O tempo de tela é estimado pelas consultas DNS: consultas do mesmo app no mesmo aparelho formam
@@ -135,8 +136,8 @@ do servidor em ordem (LAN em casa, Tailscale fora) e lembra o último que respon
 - **Pessoas:** cadastro (criança, adulto, casa), emoji, pausar o registro, vincular aparelhos.
 - **Avisos de uso:** sino na aba Hoje (ou "Avisar quando usar…" no aparelho): app, categoria ou
   qualquer uso, num aparelho ou de uma pessoa.
-- **Servidor:** endereço em uso, contadores do DNS, estado dos coletores, notificações (assinar
-  no ntfy), desparear.
+- **Servidor:** endereço em uso, contadores do DNS, estado dos coletores, notificações
+  (conectar o Telegram), desparear.
 
 ```bash
 cd android
