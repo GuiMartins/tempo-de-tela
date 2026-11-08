@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Só a janela até o Compose assumir; as cores vêm do tema Material3 do app. -->
-    <style name="Theme.TempoDeTela" parent="android:Theme.Material.NoActionBar" />
+    <!-- Só a janela até o Compose assumir; as cores vêm do TempoTheme. O fundo bate com o do app
+         pra não piscar cinza na abertura. -->
+    <style name="Theme.TempoDeTela" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
 </resources>

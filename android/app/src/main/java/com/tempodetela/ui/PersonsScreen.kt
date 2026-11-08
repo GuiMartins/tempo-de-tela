@@ -3,6 +3,14 @@
 package com.tempodetela.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -62,39 +71,88 @@ fun PersonsScreen(
     state: UiState,
     onRefresh: () -> Unit,
     onOpen: (Person) -> Unit,
+    onNew: () -> Unit,
     onUnpair: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val now = nowSec()
     PullToRefreshBox(isRefreshing = state.loading, onRefresh = onRefresh, modifier = modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             state.error?.let { msg -> item { ErrorCard(msg, state.unauthorized, onRefresh, onUnpair) } }
             if (state.loaded && state.persons.isEmpty()) {
                 item {
-                    Text(
-                        "Cadastre quem mora na casa e vincule os aparelhos de cada um. Para aparelhos compartilhados, como a TV da sala, use o tipo Casa.",
-                        Modifier.padding(24.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AppCard(Modifier.fillMaxWidth().padding(top = 8.dp), padding = 24.dp) {
+                        Box(
+                            Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(Icons.Outlined.People, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) }
+                        Text("Quem mora na casa?", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
+                        Text(
+                            "Cadastre cada pessoa e vincule os aparelhos dela. Para aparelhos compartilhados, como a TV da sala, use o tipo Casa.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                        Button(onClick = onNew, modifier = Modifier.padding(top = 20.dp)) {
+                            Icon(Icons.Outlined.Add, null)
+                            Text("Cadastrar pessoa", Modifier.padding(start = 8.dp))
+                        }
+                    }
                 }
             }
             items(state.persons, key = { it.id }) { person ->
-                ListItem(
-                    modifier = Modifier.clickable { onOpen(person) },
-                    leadingContent = { PersonAvatar(person) },
-                    headlineContent = { Text(person.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    supportingContent = {
-                        val n = person.deviceIds.size
-                        Column {
-                            Text("${personKindLabel(person.kind)} · $n ${if (n == 1) "aparelho" else "aparelhos"}")
-                            if (!person.monitoring) {
-                                Text("Monitoramento pausado", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                            }
+                val devices = state.devices.filter { it.personId == person.id }
+                    .sortedWith(compareByDescending<Device> { it.isOnline(now) }.thenByDescending { it.lastSeen })
+                val online = devices.count { it.isOnline(now) }
+                AppCard(Modifier.fillMaxWidth(), onClick = { onOpen(person) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        PersonAvatar(person, 52)
+                        Column(Modifier.weight(1f)) {
+                            Text(person.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                buildString {
+                                    append(personKindLabel(person.kind))
+                                    append(" · ${devices.size} ${if (devices.size == 1) "aparelho" else "aparelhos"}")
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                    },
-                )
+                        when {
+                            !person.monitoring -> StatusBadge("pausado", Tone.Warn)
+                            online > 0 -> StatusBadge("online", Tone.Ok, dot = true)
+                        }
+                    }
+                    if (devices.isNotEmpty()) {
+                        FlowRow(
+                            Modifier.padding(top = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            devices.take(4).forEach { d -> DeviceChip(d, d.isOnline(now)) }
+                            if (devices.size > 4) StatusBadge("+${devices.size - 4}")
+                        }
+                    }
+                }
             }
-            item { Spacer(Modifier.height(96.dp)) }
+            item { Spacer(Modifier.height(88.dp)) }
         }
+    }
+}
+
+@Composable
+private fun DeviceChip(device: Device, online: Boolean) {
+    val c = MaterialTheme.colorScheme
+    Row(
+        Modifier.clip(RoundedCornerShape(10.dp)).background(c.surfaceContainerHigh).padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(kindIcon(device.effectiveKind), null, Modifier.size(15.dp), tint = if (online) LocalStatus.current.ok else c.onSurfaceVariant)
+        Text(device.displayName, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 150.dp))
     }
 }
 
@@ -121,11 +179,15 @@ fun PersonSheet(
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp),
+                .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(if (person == null) "Nova pessoa" else person.name, style = MaterialTheme.typography.titleLarge)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                PersonAvatar(Person(id = 0, name = name.ifBlank { "?" }, emoji = emoji), 52)
+                Text(if (person == null) "Nova pessoa" else person.name, style = MaterialTheme.typography.titleLarge)
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = emoji, onValueChange = { if (it.length <= 8) emoji = it },
@@ -155,6 +217,10 @@ fun PersonSheet(
                             if (id == "shared" && emoji.isBlank()) emoji = "🏠"
                         },
                         shape = SegmentedButtonDefaults.itemShape(i, personKinds.size),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
                     ) { Text(label) }
                 }
             }

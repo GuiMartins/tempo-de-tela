@@ -2,6 +2,14 @@ package com.tempodetela.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +25,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -73,7 +80,7 @@ fun PairScreen(pair: suspend (ServerConfig) -> String?) {
         result.contents?.let { text -> attempt { Pairing.parseQr(text) } }
     }
 
-    Surface(Modifier.fillMaxSize()) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier
                 .safeDrawingPadding()
@@ -83,15 +90,34 @@ fun PairScreen(pair: suspend (ServerConfig) -> String?) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(32.dp))
-            Icon(Icons.Outlined.Timer, null, Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(40.dp))
+            BrandLogo(72.dp)
             Text("Tempo de Tela", style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Abra o painel do servidor no computador (porta 8994), vá em App Android e gere um QR code.",
+                "Conecte este celular ao servidor da casa.",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(8.dp))
+            AppCard(Modifier.fillMaxWidth().padding(top = 8.dp), padding = 20.dp) {
+                val steps = listOf(
+                    "No computador, abra o painel do servidor (porta 8994).",
+                    "Vá em App Android e toque em Gerar QR code.",
+                    "Leia o QR code com o botão abaixo.",
+                )
+                steps.forEachIndexed { i, step ->
+                    Row(
+                        Modifier.padding(top = if (i == 0) 0.dp else 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("${i + 1}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
+                        Text(step, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
             Button(
                 onClick = {
                     scanner.launch(
@@ -103,10 +129,12 @@ fun PairScreen(pair: suspend (ServerConfig) -> String?) {
                     )
                 },
                 enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             ) {
                 Icon(Icons.Outlined.QrCodeScanner, null)
-                Text("Ler QR code", Modifier.padding(start = 8.dp))
+                Text("Ler QR code", Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium)
             }
             TextButton(onClick = { manual = !manual }, enabled = !busy) {
                 Text(if (manual) "Esconder pareamento manual" else "Digitar endereço e token")
