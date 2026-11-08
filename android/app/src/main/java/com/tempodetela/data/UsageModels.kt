@@ -70,13 +70,20 @@ data class PersonToday(
     @SerialName("top_apps") val topApps: List<AppUsage> = emptyList(),
     @SerialName("now_app") val nowApp: String = "",
     val limits: List<LimitUse> = emptyList(),
+    /** Bloqueio valendo agora ("Internet pausada até 21:30"); vazio se nenhum. */
+    val block: String = "",
 )
 
 @Serializable
-data class TimeWindow(val start: String = "22:00", val end: String = "06:00")
+data class TimeWindow(val start: String = "22:00", val end: String = "06:00", val block: Boolean = false)
 
 @Serializable
-data class SchoolHours(val days: List<Int> = listOf(1, 2, 3, 4, 5), val start: String = "07:00", val end: String = "12:30")
+data class SchoolHours(
+    val days: List<Int> = listOf(1, 2, 3, 4, 5),
+    val start: String = "07:00",
+    val end: String = "12:30",
+    val block: Boolean = false,
+)
 
 /** Regras da pessoa: limites em minutos por categoria (ou "total"), hora de dormir, aula. */
 @Serializable
@@ -84,6 +91,8 @@ data class PersonRules(
     val limits: Map<String, Int> = emptyMap(),
     val bedtime: TimeWindow? = null,
     val school: SchoolHours? = null,
+    @SerialName("block_on_limit") val blockOnLimit: Boolean = false,
+    @SerialName("block_categories") val blockCategories: List<String> = emptyList(),
 )
 
 @Serializable

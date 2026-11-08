@@ -143,7 +143,7 @@ fun DevicesScreen(
                     ) {
                         PersonAvatar(person, 28)
                         Text(person.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                        if (!person.monitoring) StatusBadge("pausado", Tone.Warn)
+                        if (person.isPaused()) StatusBadge("internet pausada", Tone.Danger) else if (!person.monitoring) StatusBadge("sem registro", Tone.Warn)
                         Text("${devices.size}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

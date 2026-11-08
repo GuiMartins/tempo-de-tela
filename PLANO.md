@@ -4,7 +4,7 @@ Nome: **`tempo-de-tela`**.
 
 ## Status (08/11/2026)
 
-**Fases 1, 3, 4 e 5 no ar.** Backend no zima como DNS da casa (no lugar do pihole), com coletores
+**Fases 1, 3, 4, 5 e 6 no ar.** Backend no zima como DNS da casa (no lugar do pihole), com coletores
 ARP/DHCP/mDNS, nomes automáticos dos aparelhos (DHCP, DNS reverso do roteador e da Tailscale,
 mDNS, assinatura pelos domínios), painel web com senha e API. App Android (Releases no GitHub,
 atualiza sozinho) com pareamento por QR, pessoas, aparelhos e vínculos.
@@ -19,8 +19,17 @@ aula), alertas avaliados no servidor a cada 5 min (limite, hora de dormir, aula,
 aparelho novo) e notificações no app pelo WorkManager; aba Hoje com limites e "agora: app";
 tela da pessoa com comparação com o dia/semana anterior e as regras.
 
-**Faltam:** fase 2 (tirar o `8.8.8.8` do DHCP do roteador e resolver o DNS IPv6: hoje parte das
-consultas escapa) e fase 6 (pausar internet, hora de dormir e bloqueio por categoria no DNS). Descoberta por SSDP/NetBIOS ficou de fora (os nomes já vêm de outras fontes).
+Fase 6: bloqueio no DNS por pessoa (motor em memória, decidido em toda consulta): pausar a
+internet (prazo ou sem prazo), bloquear na hora de dormir, bloquear vídeo/jogos/redes na aula,
+categorias sempre bloqueadas e categoria que passou do limite (o total bloqueia tudo). Serviços do
+sistema ficam liberados. No app: pausar/liberar na tela da pessoa e as opções nas regras.
+
+**Falta:** fase 2 (tirar o `8.8.8.8` do DHCP do roteador e resolver o DNS IPv6). Sem ela, parte
+das consultas escapa do registro **e dos bloqueios**.
+
+Limites do bloqueio por DNS: conexões já abertas continuam até o app resolver o nome de novo (o
+TTL entregue é de no máximo 60 s); dados móveis e DNS IPv6 do roteador escapam; a busca do
+Google (google.com) está em "sistema" e não é bloqueada na pausa. Descoberta por SSDP/NetBIOS ficou de fora (os nomes já vêm de outras fontes).
 Limitação conhecida: apps de computador que consultam o servidor o tempo todo em segundo plano
 (ChatGPT, Claude, WhatsApp Desktop) aparecem com mais tempo do que o uso real.
 

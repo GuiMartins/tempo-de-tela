@@ -231,7 +231,19 @@ func (h *handler) summaryWithPrevious(hits []store.Hit, from time.Time, days int
 	cat := h.Catalogs.Get()
 	sessions := usage.Sessionize(hits, cat)
 	sum := usage.Summarize(sessions, cat, from, days)
-	sum.PreviousTotalSec = usage.Summarize(sessions, cat, from.AddDate(0, 0, -days), days).TotalSec
+	// Período que ainda não acabou (hoje, esta semana) compara com o anterior até a mesma hora.
+	previous := sessions
+	if now := time.Now(); now.Before(from.AddDate(0, 0, days)) {
+		cutoff := now.AddDate(0, 0, -days).Unix()
+		previous = nil
+		for _, s := range sessions {
+			if s.Start < cutoff {
+				s.End = min(s.End, cutoff)
+				previous = append(previous, s)
+			}
+		}
+	}
+	sum.PreviousTotalSec = usage.Summarize(previous, cat, from.AddDate(0, 0, -days), days).TotalSec
 	return sum
 }
 

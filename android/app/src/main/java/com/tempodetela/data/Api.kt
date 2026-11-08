@@ -37,6 +37,10 @@ interface Api {
     @DELETE("api/v1/persons/{id}")
     suspend fun deletePerson(@Path("id") id: Long): Response<Unit>
 
+    /** {"minutes": 60} pausa por 1 h; -1 sem prazo; 0 libera. */
+    @POST("api/v1/persons/{id}/pause")
+    suspend fun pause(@Path("id") id: Long, @Body body: JsonObject): Person
+
     @GET("api/v1/catalog")
     suspend fun catalog(): AppCatalog
 

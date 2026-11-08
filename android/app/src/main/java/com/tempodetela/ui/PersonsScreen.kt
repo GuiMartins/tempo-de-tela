@@ -122,7 +122,8 @@ fun PersonsScreen(
                             )
                         }
                         when {
-                            !person.monitoring -> StatusBadge("pausado", Tone.Warn)
+                            person.isPaused() -> StatusBadge("internet pausada", Tone.Danger)
+                            !person.monitoring -> StatusBadge("sem registro", Tone.Warn)
                             online > 0 -> StatusBadge("online", Tone.Ok, dot = true)
                         }
                     }

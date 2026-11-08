@@ -130,6 +130,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun rules(personId: Long): Result<PersonRules> = runCatching { api.rules(personId) }
 
+    /** minutes: >0 pausa por esse tempo, -1 sem prazo, 0 libera. */
+    fun pause(person: Person, minutes: Int) = mutate(
+        when (minutes) {
+            0 -> "Internet de ${person.name} liberada"
+            else -> "Internet de ${person.name} pausada"
+        },
+    ) { api.pause(person.id, buildJsonObject { put("minutes", minutes) }) }
+
     fun saveRules(personId: Long, rules: PersonRules, onSaved: () -> Unit = {}) = mutate("Regras salvas") {
         api.saveRules(personId, rules)
         onSaved()

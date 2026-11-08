@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.PauseCircle
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -72,7 +74,10 @@ fun PersonDetailScreen(
     catalog: AppCatalog = AppCatalog(),
     onSaveRules: (PersonRules, () -> Unit) -> Unit = { _, _ -> },
     events: List<AlertEvent> = emptyList(),
+    blockStatus: String = "",
+    onPause: (Int) -> Unit = {},
 ) {
+    var choosingPause by remember { mutableStateOf(false) }
     var rules by remember { mutableStateOf<PersonRules?>(null) }
     var editingRules by remember { mutableStateOf(false) }
     var rulesVersion by remember { mutableIntStateOf(0) }
@@ -92,6 +97,12 @@ fun PersonDetailScreen(
             .onFailure { error = it.userMessage() }
     }
 
+    if (choosingPause) {
+        PauseDialog(person.name, onDismiss = { choosingPause = false }) { minutes ->
+            choosingPause = false
+            onPause(minutes)
+        }
+    }
     if (editingRules) {
         RulesSheet(person.name, rules ?: PersonRules(), catalog, onDismiss = { editingRules = false }) { new ->
             onSaveRules(new) { rulesVersion++ }
@@ -153,6 +164,7 @@ fun PersonDetailScreen(
                 ) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, "Próximo") }
             }
 
+            PauseCard(person, blockStatus, onPauseClick = { choosingPause = true }, onResume = { onPause(0) })
             error?.let { ErrorCard(it, false, { reload++ }, {}) }
             val s = summary
             if (s == null) {
@@ -239,7 +251,7 @@ private fun DayContent(s: UsageSummary, date: LocalDate, rules: PersonRules?, ca
     TotalHeader(
         s.totalSec,
         if (s.totalSec > 0) "Das ${clock(s.firstActivity)} às ${clock(s.lastActivity)}" else "Sem uso registrado",
-        s.previousTotalSec, "que no dia anterior",
+        s.previousTotalSec, if (date == LocalDate.now()) "que ontem até esta hora" else "que no dia anterior",
     )
     val limits = rules?.limits.orEmpty()
     if (limits.isNotEmpty()) {
@@ -264,7 +276,10 @@ private fun DayContent(s: UsageSummary, date: LocalDate, rules: PersonRules?, ca
 @Composable
 private fun WeekContent(s: UsageSummary, end: LocalDate, onPickDay: (LocalDate) -> Unit) {
     val activeDays = s.daily.count { it.sec > 0 }.coerceAtLeast(1)
-    TotalHeader(s.totalSec, "Média de ${formatDuration(s.totalSec / activeDays)} por dia com uso", s.previousTotalSec, "que na semana anterior")
+    TotalHeader(
+        s.totalSec, "Média de ${formatDuration(s.totalSec / activeDays)} por dia com uso", s.previousTotalSec,
+        if (end == LocalDate.now()) "que na semana anterior até agora" else "que na semana anterior",
+    )
     AppCard(Modifier.fillMaxWidth()) {
         Text("Por dia", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 12.dp))
         DayBars(s.daily, end, onPickDay)
@@ -279,4 +294,74 @@ private fun WeekContent(s: UsageSummary, end: LocalDate, onPickDay: (LocalDate) 
     }
     AppsCard(s, "Apps da semana")
     Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun PauseCard(person: Person, blockStatus: String, onPauseClick: () -> Unit, onResume: () -> Unit) {
+    val paused = person.isPaused()
+    val c = MaterialTheme.colorScheme
+    androidx.compose.material3.Surface(
+        shape = CardShape,
+        color = if (blockStatus.isNotBlank()) c.errorContainer else c.surfaceContainerLowest,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (blockStatus.isNotBlank()) c.error.copy(alpha = .3f) else c.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                if (paused) Icons.Outlined.PauseCircle else Icons.Outlined.Wifi, null,
+                tint = if (blockStatus.isNotBlank()) c.error else c.primary,
+            )
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    blockStatus.ifBlank { "Internet liberada" },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (blockStatus.isNotBlank()) c.onErrorContainer else c.onSurface,
+                )
+                if (blockStatus.isBlank()) {
+                    Text("Pause na hora quando precisar.", style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+                }
+            }
+            if (paused) {
+                androidx.compose.material3.Button(onClick = onResume) { Text("Liberar") }
+            } else {
+                androidx.compose.material3.OutlinedButton(onClick = onPauseClick) { Text("Pausar") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PauseDialog(name: String, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+    val now = java.time.LocalDateTime.now()
+    var morning = now.toLocalDate().plusDays(1).atTime(7, 0)
+    if (now.hour < 7) morning = now.toLocalDate().atTime(7, 0)
+    val untilMorning = java.time.Duration.between(now, morning).toMinutes().toInt().coerceAtLeast(1)
+    val options = listOf(
+        30 to "30 minutos",
+        60 to "1 hora",
+        120 to "2 horas",
+        untilMorning to "Até amanhã às 7h",
+        -1 to "Sem prazo (até liberar)",
+    )
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Pausar a internet de $name") },
+        text = {
+            Column {
+                Text(
+                    "Os aparelhos de $name ficam sem internet pelo Wi-Fi de casa (serviços do sistema continuam funcionando).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                options.forEach { (minutes, label) ->
+                    androidx.compose.material3.TextButton(onClick = { onPick(minutes) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(label, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.HourglassBottom
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.School
@@ -36,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +71,8 @@ fun RulesSheet(
     var bedtime by remember { mutableStateOf(initial.bedtime ?: TimeWindow("22:00", "06:00")) }
     var schoolOn by remember { mutableStateOf(initial.school != null) }
     var school by remember { mutableStateOf(initial.school ?: SchoolHours()) }
+    var blockOnLimit by remember { mutableStateOf(initial.blockOnLimit) }
+    val alwaysBlocked = remember { mutableStateListOf<String>().apply { addAll(initial.blockCategories) } }
     val categories = listOf("total" to "Total do dia") +
         catalog.categories.filter { !it.ignore }.map { it.id to it.label }
 
@@ -80,7 +84,7 @@ fun RulesSheet(
             ) {
                 Text("Regras de $personName", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Quando uma regra é quebrada, o app avisa com uma notificação. Ainda não bloqueia nada.",
+                    "Quando uma regra é quebrada, o app avisa com uma notificação. Com “bloquear” ligado, o DNS da casa também corta o acesso; serviços do sistema continuam funcionando.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -108,6 +112,23 @@ fun RulesSheet(
                     }
                 }
 
+                BlockSwitch("Bloquear a categoria quando passar do limite (o limite total bloqueia tudo)", blockOnLimit) { blockOnLimit = it }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SectionTitle(Icons.Outlined.Block, "Sempre bloquear")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    catalog.categories.filter { !it.ignore }.forEach { c ->
+                        val on = c.id in alwaysBlocked
+                        FilterChip(
+                            colors = brandChipColors(), border = brandChipBorder(on),
+                            selected = on,
+                            onClick = { if (on) alwaysBlocked.remove(c.id) else alwaysBlocked.add(c.id) },
+                            leadingIcon = { Icon(categoryIcon(c.id), null, tint = categoryColor(c.id)) },
+                            label = { Text(c.label) },
+                        )
+                    }
+                }
+
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { SectionTitle(Icons.Outlined.Bedtime, "Hora de dormir") }
@@ -118,6 +139,7 @@ fun RulesSheet(
                         TimeButton("Das", bedtime.start, Modifier.weight(1f)) { bedtime = bedtime.copy(start = it) }
                         TimeButton("Até", bedtime.end, Modifier.weight(1f)) { bedtime = bedtime.copy(end = it) }
                     }
+                    BlockSwitch("Bloquear a internet nesse horário", bedtime.block) { bedtime = bedtime.copy(block = it) }
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -142,6 +164,7 @@ fun RulesSheet(
                         TimeButton("Das", school.start, Modifier.weight(1f)) { school = school.copy(start = it) }
                         TimeButton("Até", school.end, Modifier.weight(1f)) { school = school.copy(end = it) }
                     }
+                    BlockSwitch("Bloquear vídeo, jogos, redes, música e compras na aula", school.block) { school = school.copy(block = it) }
                     Text(
                         "Apps de estudo (Classroom, Khan Academy, Duolingo…) não contam como uso na aula.",
                         style = MaterialTheme.typography.bodySmall,
@@ -157,6 +180,8 @@ fun RulesSheet(
                             limits = limits.filterValues { it > 0 },
                             bedtime = if (bedtimeOn) bedtime else null,
                             school = if (schoolOn && school.days.isNotEmpty()) school else null,
+                            blockOnLimit = blockOnLimit,
+                            blockCategories = alwaysBlocked.toList(),
                         ),
                     )
                 },
@@ -185,4 +210,12 @@ private fun TimeButton(label: String, value: String, modifier: Modifier = Modifi
         },
         modifier = modifier,
     ) { Text("$label $value") }
+}
+
+@Composable
+private fun BlockSwitch(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text, Modifier.weight(1f).padding(end = 12.dp), style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
 }

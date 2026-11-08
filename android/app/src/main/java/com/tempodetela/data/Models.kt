@@ -54,7 +54,11 @@ data class Person(
     val monitoring: Boolean = true,
     @SerialName("created_at") val createdAt: Long = 0,
     @SerialName("device_ids") val deviceIds: List<Long> = emptyList(),
-)
+    /** Internet pausada até (unix); -1 = sem prazo; 0 = liberada. */
+    @SerialName("paused_until") val pausedUntil: Long = 0,
+) {
+    fun isPaused(now: Long = System.currentTimeMillis() / 1000) = pausedUntil == -1L || pausedUntil > now
+}
 
 @Serializable
 data class DnsStatus(
