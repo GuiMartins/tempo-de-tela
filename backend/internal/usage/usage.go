@@ -70,8 +70,19 @@ type Session struct {
 	Queries  int
 }
 
-// Sessionize agrupa as consultas (em ordem de tempo) em sessões por aparelho e app.
+// Sessionize agrupa as consultas (em ordem de tempo) em sessões por aparelho e app. Categorias
+// ignoradas (sistema) ficam de fora: não são tempo de tela.
 func Sessionize(hits []store.Hit, cat *catalog.Catalog) []Session {
+	return sessionize(hits, cat, false)
+}
+
+// SessionizeAll é o Sessionize com as categorias ignoradas também, pros avisos de uso de apps
+// que não contam como tempo de tela (ex.: pesquisa no Google no navegador da TV).
+func SessionizeAll(hits []store.Hit, cat *catalog.Catalog) []Session {
+	return sessionize(hits, cat, true)
+}
+
+func sessionize(hits []store.Hit, cat *catalog.Catalog, includeIgnored bool) []Session {
 	type key struct {
 		device int64
 		app    string
@@ -90,7 +101,7 @@ func Sessionize(hits []store.Hit, cat *catalog.Catalog) []Session {
 			continue
 		}
 		category := cat.Category(app.Category)
-		if category == nil || category.Ignore {
+		if category == nil || (category.Ignore && !includeIgnored) {
 			continue
 		}
 		k := key{h.DeviceID, app.ID}

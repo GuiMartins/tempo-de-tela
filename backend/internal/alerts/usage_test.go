@@ -117,6 +117,32 @@ func TestEvaluateUsage(t *testing.T) {
 		t.Fatalf("aviso velho: %v", titles[netflixTV.ID])
 	}
 
+	// App de sistema (pesquisa no Google no navegador): avisa, mas não conta como "qualquer uso".
+	searchTV, _ := st.CreateUsageAlert(ctx, store.UsageAlert{AppID: "google-search", DeviceID: &tv}, at(8, 0))
+	st.RecordQuery(ctx, at(11, 50), tvIP, "www.google.com.br", 1, 0)
+	st.RecordQuery(ctx, at(11, 50).Add(10*time.Second), tvIP, "ogs.google.com", 1, 0)
+	st.RecordQuery(ctx, at(11, 51), tvIP, "encrypted-tbn0.gstatic.com", 1, 0)
+	eval(at(11, 52))
+	events, _ := st.Events(ctx, 0, 100)
+	var search []string
+	for _, e := range events {
+		if hasPrefix(st, e.ID, searchTV.ID) {
+			search = append(search, e.Title)
+		}
+	}
+	if len(search) != 1 || search[0] != "TV da sala: Navegador (pesquisa no Google) em uso" {
+		t.Fatalf("pesquisa no Google = %v", search)
+	}
+	if count[anyTV.ID] != 2 {
+		t.Fatalf("sistema não deveria contar como qualquer uso: %v", titles[anyTV.ID])
+	}
+	// YouTube da TV também consulta www.google.com: isso não é o navegador.
+	record(tvIP, at(11, 55), 3, "www.google.com")
+	eval(at(11, 59))
+	if n, _ := st.LastEventTS(ctx, fmt.Sprintf("usage:%d:", searchTV.ID)); n != at(11, 52).Unix() {
+		t.Fatalf("www.google.com não deveria avisar navegador")
+	}
+
 	// Categoria por pessoa: Roblox no tablet da Helena.
 	record(tabletIP, at(12, 0), 5, "roblox.com")
 	eval(at(12, 4))

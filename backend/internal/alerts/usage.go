@@ -74,7 +74,13 @@ func EvaluateUsage(ctx context.Context, st *store.Store, catalogs *usage.Catalog
 		if err != nil {
 			return err
 		}
-		b, ok := lastBlock(usage.Sessionize(hits, cat), a, cat)
+		sessionize := usage.Sessionize
+		if app := cat.App(a.AppID); app != nil {
+			if c := cat.Category(app.Category); c != nil && c.Ignore {
+				sessionize = usage.SessionizeAll // aviso de um app de sistema, ex.: pesquisa no Google
+			}
+		}
+		b, ok := lastBlock(sessionize(hits, cat), a, cat)
 		if !ok || b.end < a.CreatedAt || now.Unix()-b.end > usageStale {
 			continue
 		}

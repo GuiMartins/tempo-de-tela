@@ -116,6 +116,13 @@ apps:
     category: system
     domains: [lge.com, lgsmartad.com, lgsmartplatform.com, wiselg.com, lgthinq.com, alphonso.tv, samsung.com, samsungiotcloud.com, samsunghrm.com, samsungcloudsolution.com, samsungotn.net, cspserver.net, xiaomi.com, mi.com, miwifi.com, bambulab.com, meethue.com, ecoflow.com, tuyaus.com, tuya.com, ueiwsp.com, tailscale.com, tailscale.io, nvidia.com, gigabyte.com, lgeapi.com, lgtviot.com, smartthings.com, samsungcloud.com, samsungapps.com, samsungelectronics.com, bblmw.com, amazontrust.com, ssl-images-amazon.com, media-amazon.com, cloud.microsoft, golang.org, alexa.amazon.com, roku.com, sonos.com, hp.com, epson.com, brother.com, bixbyllm.com, icewhale.io]
   - {id: system-ignored, name: Ignorados por você, category: system, domains: []}
+  # Página de pesquisa do Google aberta num navegador (busca, barra do Google, miniaturas). O
+  # navegador das TVs LG não tem domínio próprio: é assim que dá pra saber que ele foi usado. Fica
+  # em "sistema" (não soma no tempo de tela); serve pro aviso de uso num aparelho.
+  - id: google-search
+    name: Navegador (pesquisa no Google)
+    category: system
+    domains: [www.google.com.br, ogs.google.com, ogads-pa.clients6.google.com, encrypted-tbn0.gstatic.com, encrypted-tbn1.gstatic.com, encrypted-tbn2.gstatic.com, encrypted-tbn3.gstatic.com]
   - id: system-network
     name: Rede e horário
     category: system
