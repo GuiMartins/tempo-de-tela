@@ -37,6 +37,10 @@ bloco de uso, avaliados a cada 1 min. Todos os alertas vão por um bot do Telegr
 (token no painel, conversas conectadas por link com código) e chegam em 1 a 3 min, em casa ou
 fora. Com o Telegram conectado, o app para de notificar sozinho pra não chegar em dobro. (Primeiro
 foi feito com ntfy auto-hospedado; trocado porque exigia instalar mais um app no celular.)
+Navegador das TVs LG: não consulta domínio próprio no DNS (abre direto no Google). O aviso usa o app
+"Navegador (pesquisa no Google)" (página de busca do Google, em "sistema"): pega pesquisa no Google
+pela TV, mas não quem digita um endereço direto. O app do YouTube da TV consulta www.google.com e
+play.google.com, por isso esses ficam de fora.
 
 Limites do bloqueio por DNS: conexões já abertas continuam até o app resolver o nome de novo (o
 TTL entregue é de no máximo 60 s); dados móveis e DNS IPv6 do roteador escapam; a busca do
